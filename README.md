@@ -1,128 +1,179 @@
-# [GRUPI NIMI] — [PROJEKTI PEALKIRI]
-
+# Andmeinseneeria projekt — võlgnevuste analüüsi andmetoru
 
 ## Äriküsimus
 
-Projekt lahendab probleemi, kus ettevõttel puudub selge ülevaade sellest, kui palju võlas olevate lepingute võlapäevad ajas muutuvad ja millised trendid viitavad maksekäitumise halvenemisele. Projekti tulemusel saab jälgida võlgnevuste dünaamikat dashboardil ning teha otsuseid vastavalt ettevõtte maksekäitumisele.
+Projekt lahendab probleemi, kus ettevõttel puudub automaatne ja ajas võrreldav ülevaade laenuklientide võlgnevustest. SAP-ist saabub regulaarselt XLSX-fail võlaandmetega ning lahendus laadib selle PostgreSQL-i, kontrollib andmekvaliteeti, arvutab KPI-d ja kuvab tulemused dashboardil.
 
-[Kirjelda ühe-kahe lausega, millise andmetega seotud probleemi te lahendate ja kes sellest kasu saab.]
+Peamine äriküsimus:
 
-**Mõõdikud:**
+> Kuidas muutuvad võlas olevate lepingute võlapäevad ja võlasummad ajas ning millised trendid viitavad maksekäitumise halvenemisele?
 
-1. Kaalutud keskmine võlapäevade arv
-2. Maksimaalne võlapäevade arv
-3. Võlas olevate lepingute arv
+## Mõõdikud
+
+1. Kaalutud keskmine võlapäevade arv: `SUM(võlapäevad * võlasumma) / SUM(võlasumma)`
+2. Maksimaalne võlapäevade arv: `MAX(võlapäevad)`
+3. Võlas olevate lepingute arv: `COUNT(leping_id) WHERE võlapäevad > 0`
+4. Võlasumma ajas: `SUM(võlasumma) GROUP BY raporti_kuupäev`
+5. Ettevõtete arv võlas: `COUNT(DISTINCT registrikood) WHERE võlasumma > 0`
 
 ## Arhitektuur
 
 ```mermaid
 flowchart LR
-    source[Andmeallikas] --> ingest[Sissevõtt]
-    ingest --> staging[(staging)]
-    staging --> transform[Transformatsioon]
-    transform --> mart[(mart)]
-    mart --> dashboard[Näidikulaud]
+    SAP[SAP XLSX eksport] --> FILES[Jagatud failikataloog]
+    FILES --> INGEST[Ingest teenus]
+    INGEST --> STAGING[(PostgreSQL staging)]
+    STAGING --> QUALITY[Andmekvaliteedi kontroll]
+    QUALITY --> TRANSFORM[Transformatsiooni teenus]
+    TRANSFORM --> MART[(PostgreSQL mart)]
+    MART --> API[Dashboard API]
+    API --> DASH[JS dashboard]
+    SCHED[Cron scheduler] --> INGEST
+    SCHED --> QUALITY
+    SCHED --> TRANSFORM
 ```
 
-Täpsem kirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
+Üldine arhitektuurikirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
+
+Detailne arhitektuuridokumentatsioon:
+
+- Äriarhitektuur: [`docs/ari_arhitektuur/`](docs/ari_arhitektuur/)
+- IT-arhitektuur: [`docs/it_arhitektuur/`](docs/it_arhitektuur/)
 
 ## Andmestik
 
 | Allikas | Tüüp | Ajas muutuv? | Roll |
-|---------|------|--------------|------|
-| [Nimi] | CSV | Jah, iga päev | Analüüsida võlgades olevaid ettevõtteid |
+|---|---|---|---|
+| SAP võlaandmete eksport | XLSX | Jah, iga päev või kokkulepitud sagedusega | Sisaldab laenuklientide võlasummasid ja võlapäevade infot. |
+
+Sisendfaili peamised veerud:
+
+| Väli | Kirjeldus |
+|---|---|
+| `REG kood` | Ettevõtte registrikood. |
+| `Lepingu nr` | Lepingu number. |
+| `Summa` | Võlasumma. |
+| `Võlapäevad` | Võlapäevade arv, kui see tuleb allikast. |
 
 ## Stack
 
 | Komponent | Tööriist |
-|-----------|---------|
-| Sissevõtt | [Python / Airflow / muu] |
-| Transformatsioon | [SQL / dbt / muu] |
-| Andmehoidla | PostgreSQL |
-| Näidikulaud | [Superset / Streamlit / muu] |
-| Orkestreerimine | [Airflow / cron / muu] |
-
-## Käivitamine
-
-```bash
-# 1. Klooni repo ja liigu kausta
-git clone <repo-url>
-cd <projekti-kaust>
-
-# 2. Kopeeri keskkonnamuutujad
-cp .env.example .env
-# Muuda .env failis paroolid ja muud seaded vastavalt vajadusele
-
-# 3. Käivita teenused
-docker compose up -d --build
-
-# 4. [Vabatahtlik: käivita sissevõtt käsitsi esimesel korral]
-# docker compose exec pipeline python scripts/run_pipeline.py run-all
-```
-
-Airflow (kui kasutatakse): http://localhost:8080 (kasutaja: airflow / parool: airflow)
-Näidikulaud: http://localhost:[PORT]
-
-## Saladused ja konfiguratsioon
-
-Kõik saladused (paroolid, API võtmed, andmebaasi URL-id) on `.env` failis. Repos on ainult `.env.example`, mis näitab vajalike muutujate struktuuri ilma tegelike väärtusteta. Päris `.env` faili ei tohi GitHubi panna - see on `.gitignore`-s.
-
-Vajalikud muutujad:
-
-| Muutuja | Tähendus | Näide |
-|---------|----------|-------|
-| `DB_PASSWORD` | PostgreSQL parool | (saladus) |
-| `[teised]` | ... | ... |
+|---|---|
+| Andmebaas | PostgreSQL |
+| Sissevõtt | Python või Node.js teenus |
+| Andmekvaliteet | SQL, Python või Node.js kontrollid |
+| Transformatsioon | SQL, Python või dbt-stiilis SQL |
+| Orkestreerimine | Cron Docker konteineris |
+| Dashboard API | Node.js + Express või muu lihtne HTTP API |
+| Dashboard | HTML, CSS, Vanilla JavaScript, Chart.js |
+| Käitus | Docker Compose mikro-teenused |
 
 ## Andmevoog lühidalt
 
-1. **Sissevõtt** — [Kirjelda, kuidas andmed allikast kätte saadakse]
-2. **Laadimine** — Andmed laaditakse `staging` kihti
-3. **Transformatsioon** — [Kirjelda peamised arvutused ja mudelid]
-4. **Testimine** — [Mitu] andmekvaliteedi testi kontrollivad korrektsust
-5. **Näidikulaud** — [Kirjelda lühidalt, mida näidikulaud näitab]
+1. SAP salvestab uue XLSX-faili jagatud kataloogi.
+2. Scheduler kontrollib uut faili ja käivitab ingest teenuse.
+3. Ingest kontrollib faili kontrollsummat ning laadib read `staging` kihti.
+4. Quality teenus kontrollib kohustuslikke välju, registrikoodi, lepingu numbrit, võlasummat ja võlapäevi.
+5. Transform teenus täidab `mart` skeemi dimensioonid, faktitabeli ja KPI tabelid.
+6. Dashboard API loeb mart kihist KPI-d.
+7. JS dashboard kuvab trendid ja viimase laadimise staatuse.
 
-## Andmekvaliteedi testid
+## Andmekvaliteedi kontrollid
 
-Projekt kontrollib järgmist:
+Projekt kontrollib vähemalt järgmist:
 
-1. [Test 1 - nt: kasutajate ID on unikaalne]
-2. [Test 2 - nt: tellimuse summa pole null]
-3. [Test 3 - nt: kuupäev jääb vahemikku 2020-2026]
-[Lisa rohkem, kui sul on]
+1. Registrikood on täidetud ja vastab kokkulepitud formaadile.
+2. Lepingu number on täidetud.
+3. Võlasumma on arvuline ega ole mart kihis negatiivne.
+4. Võlapäevad on mitte-negatiivne täisarv, kui väli on failis olemas.
+5. Sama failikontrollsummaga faili ei laadita duplikaadina.
+6. Vigased read salvestatakse `quality` või `logs` skeemi koos vea põhjusega.
 
-Testide tulemused: [kuhu salvestatakse / kuidas vaadata]
+## Käivitamine
+
+Rakenduskoodi ja `docker compose` faili ei ole selles etapis veel loodud. Arhitektuur on koostatud nii, et järgmise sammuna saab luua teenused:
+
+```bash
+docker compose up -d --build
+```
+
+Eeldatav dashboardi aadress pärast rakenduse loomist:
+
+```text
+http://localhost:3000
+```
+
+## Saladused ja konfiguratsioon
+
+Kõik saladused, paroolid ja keskkonnapõhised väärtused peavad olema `.env` failis. Reposse tohib lisada ainult `.env.example`.
+
+Vajalikud muutujad:
+
+| Muutuja | Tähendus |
+|---|---|
+| `POSTGRES_HOST` | PostgreSQL host. |
+| `POSTGRES_PORT` | PostgreSQL port. |
+| `POSTGRES_DB` | Andmebaasi nimi. |
+| `POSTGRES_USER` | Andmebaasi kasutaja. |
+| `POSTGRES_PASSWORD` | Andmebaasi parool. |
+| `SAP_FILES_DIR` | SAP XLSX failide kataloog. |
+| `LOG_DIR` | Pipeline logide kataloog. |
 
 ## Projekti struktuur
 
-```
+```text
 .
 ├── README.md
-├── compose.yml
-├── .env.example
 ├── .gitignore
 ├── docs/
-│   ├── arhitektuur.md      ← nädal 1 väljund
-│   └── progress.md         ← nädal 2 väljund
-└── ...                     ← ülejäänud projektifailid
+│   ├── arhitektuur.md
+│   ├── ari_arhitektuur/
+│   │   ├── 01_arikirjeldus.md
+│   │   ├── 02_arireeglistik.md
+│   │   ├── 03_arinfo_mudel.md
+│   │   ├── 04_ontoloogia_mudel.md
+│   │   ├── 05_relatsiooniline_postgresql_andmemudel.md
+│   │   ├── 06_analuutiline_andmemudel.md
+│   │   ├── 07_dimensionaalne_andmemudel.md
+│   │   └── 08_dokumendi_mudel.md
+│   └── it_arhitektuur/
+│       ├── 01_kasutusmallid.md
+│       ├── 02_komponent_diagram.md
+│       ├── 03_evitus_diagram.md
+│       ├── 04_jargnevus_diagram.md
+│       └── 05_kommunikatsiooni_diagram.md
+└── TMP/
+    ├── UT_IT.txt
+    └── codex_arhitektuuri_juhend.md
 ```
+
+`TMP/` on töökaust lähte- ja juhendmaterjalide jaoks ning seda ei lisata Giti.
 
 ## Kokkuvõte, puudused ja võimalikud edasiarendused
 
 **Kokkuvõte:**
-- [Loetle, mis on lõpule viidud, mis töötab hästi]
+
+- Koostatud on äri- ja IT-arhitektuuri Markdown dokumentatsioon.
+- Kirjeldatud on SAP XLSX failist lähtuv automaatne andmetoru.
+- Paika on pandud PostgreSQL skeemid, KPI-d, kvaliteedikontrollid ja dashboardi vajadused.
 
 **Puudused:**
-- [Loetle ausalt, mis jäi tegemata - see ei mõjuta hinnet negatiivselt, vaid aitab hinnata]
+
+- Rakenduskood, Docker Compose fail ja tegelikud teenused on veel loomata.
+- SAP faili täpne formaat ja võlapäevade arvutuse allikas vajavad kinnitamist.
 
 **Mis edasi:**
-- [Mida tahaksid edasi teha, kui aega oleks rohkem]
+
+- Luua `compose.yml`, `.env.example` ja teenuste kaustad.
+- Ehitada ingest, quality, transform ja dashboard teenused.
+- Lisada testandmed ning automaatsed andmekvaliteedi testid.
+- Planeerida tulevane ML riskiskoori komponent.
 
 ## Meeskond
 
 | Nimi | Roll |
-|------|------|
-| [Nimi 1] | [Roll] |
-| [Nimi 2] | [Roll] |
-| [Nimi 3] | [Roll] |
-| [Nimi 4] | [Roll — vabatahtlik] |
+|---|---|
+| Jaan | Andmed |
+| Joosep | Git |
+| Sorell | Testid ja analüüs |
+| Anti | Arhitektuur |
