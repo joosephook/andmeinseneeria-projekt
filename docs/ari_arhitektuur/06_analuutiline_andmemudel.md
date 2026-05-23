@@ -65,6 +65,6 @@ KPI-de arvutus võib toimuda transform teenuses SQL-i abil. Dashboard API peaks 
 
 ## Küsimused
 
-1. Kas dashboard vajab lepingupõhist vaadet?
-2. Kas trendi arvutatakse päevase või nädalase sammuga?
-3. Kas tulevane ML komponent peab olema eraldi teenus?
+1. Kas dashboard vajab lepingupõhist vaadet? Ei, võiksime teha ettevõtte põhise vaate.
+2. Kas trendi arvutatakse päevase või nädalase sammuga? Teeme kuise sammuga.
+3. Kas tulevane ML komponent peab olema eraldi teenus? Kui, siis eraldi jah.
