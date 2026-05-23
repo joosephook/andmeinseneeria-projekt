@@ -53,6 +53,6 @@ Teenustevaheline suhtlus peab olema idempotentne seal, kus see puudutab failide 
 
 ## Küsimused
 
-1. Kas vajalik on teavitamine e-posti, Slacki või muu kanali kaudu?
-2. Kas vea korral peab pipeline peatuma või töötlema järgmise faili edasi?
-3. Kas API peab olema kaitstud autentimisega?
+1. Kas vajalik on teavitamine e-posti, Slacki või muu kanali kaudu? E-posti teel teavitamine.
+2. Kas vea korral peab pipeline peatuma või töötlema järgmise faili edasi? Vea korral peatub, saadab veateate e-postiga; töödeldakse üks fail ühe käivitusega.
+3. Kas API peab olema kaitstud autentimisega? Ei (reaalsituatsioonis - sisevõrk).
