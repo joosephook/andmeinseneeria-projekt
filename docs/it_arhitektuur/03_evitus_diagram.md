@@ -119,6 +119,6 @@ Scheduler peab käivitama töövoo järjekorras: uue faili kontroll, ingest, kva
 
 ## Küsimused
 
-1. Kas failikataloog on Docker volume või väline võrguketas / pilv ?
-2. Kas dashboard peab olema avaldatud ainult sisevõrgus?
-3. Kas vaja on eraldi dev, test ja prod Compose konfiguratsioone?
+1. Kas failikataloog on Docker volume või väline võrguketas / pilv ? Projektitöö puhul Docker volume.
+2. Kas dashboard peab olema avaldatud ainult sisevõrgus? Jah, ainult sisevõrgus.
+3. Kas vaja on eraldi dev, test ja prod Compose konfiguratsioone? Arutame.
