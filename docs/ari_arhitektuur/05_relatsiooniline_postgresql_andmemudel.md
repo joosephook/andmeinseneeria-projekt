@@ -146,6 +146,6 @@ Staging kihis võib lubada rohkem puudulikke väärtusi, sest kvaliteedikontroll
 
 ## Küsimused
 
-1. Kas ühe lepingu kohta võib samal päeval olla mitu rida?
-2. Kui kaua tuleb toorfaile ja laadimisajalugu säilitada?
-3. Kas ettevõtte nimi tuleb allikast või välisest registrist?
+1. Kas ühe lepingu kohta võib samal päeval olla mitu rida? Jah.
+2. Kui kaua tuleb toorfaile ja laadimisajalugu säilitada? Staging 7 päeva.
+3. Kas ettevõtte nimi tuleb allikast või välisest registrist? Peame tegema aruande muudetud registrikoodide kaupa - paraku originaalandmed on konfidentsiaalsed. Ettevõtte nimi on kustutatud, jäetud muudetud registrikood.
