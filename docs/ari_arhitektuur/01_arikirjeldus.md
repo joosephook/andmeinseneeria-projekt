@@ -51,13 +51,13 @@ Lahendus kasutab PostgreSQL-i, Docker Compose mikro-teenuseid, cron schedulerit,
 
 ## Küsimused mis vajavad vastamist.
 
-1. Kas sisendfail on alati XLSX?
-2. Kas võlapäevad tulevad failist või arvutatakse maksetähtaja ja raportikuupäeva põhjal?
-3. Kas ühe lepingu kohta võib samal päeval olla mitu rida?
-4. Kas andmetes on ainult juriidilised isikud või ka füüsilised isikud?
-5. Kas dashboard vajab autentimist?
-6. Kui kaua tuleb toorfaile ja laadimisajalugu säilitada?
-7. Kas vigased read tuleb parandada käsitsi või välistada automaatselt?
-8. Kas backfill peab toetama ühe päeva, perioodi või kogu ajaloo uuesti laadimist?
-9. Kas tulevane ML komponent peab olema eraldi teenus?
-10. Kas vajalik on teavitamine e-posti, Slacki või muu kanali kaudu?
+1. Kas sisendfail on alati XLSX? Alati on xlsx.
+2. Kas võlapäevad tulevad failist või arvutatakse maksetähtaja ja raportikuupäeva põhjal? Võlapäevad on algfailis toodud.
+3. Kas ühe lepingu kohta võib samal päeval olla mitu rida? Jah, tavaliselt ongi.
+4. Kas andmetes on ainult juriidilised isikud või ka füüsilised isikud? Reaalses situatsioonis mõlemad. Projektitöös on need koodid muudetud seetõttu eristus jur. vs füüs. isik ei ole võimalik.
+5. Kas dashboard vajab autentimist? Ei.
+6. Kui kaua tuleb toorfaile ja laadimisajalugu säilitada? Staging tabelid jm 7 päeva.
+7. Kas vigased read tuleb parandada käsitsi või välistada automaatselt? Käsitsi parandada.
+8. Kas backfill peab toetama ühe päeva, perioodi või kogu ajaloo uuesti laadimist? Käsitsi käivitamisel laetakse korraga üks päev.
+9. Kas tulevane ML komponent peab olema eraldi teenus? Eraldi teenus.
+10. Kas vajalik on teavitamine e-posti, Slacki või muu kanali kaudu? E-posti kaudu.
