@@ -41,6 +41,6 @@ erDiagram
 
 ## Küsimused
 
-1. Kas andmetes on ainult juriidilised isikud või ka füüsilised isikud?
-2. Kas ühe lepingu kohta võib samal päeval olla mitu rida?
-3. Kas ettevõtte nimi tuleb SAP failist või mõnest eraldi registrist?
+1. Kas andmetes on ainult juriidilised isikud või ka füüsilised isikud? Mõlemad. Aga projektitöös on koodid muudetud ja eristada pole võimaik.
+2. Kas ühe lepingu kohta võib samal päeval olla mitu rida? Jah.
+3. Kas ettevõtte nimi tuleb SAP failist või mõnest eraldi registrist? Nimi tuleb SAP failist. Aga jällegi, konfidentsiaalsuse huvides on nimed kustutatud, aruandlus käib registrikoodide kaupa ning need on muudetud.
