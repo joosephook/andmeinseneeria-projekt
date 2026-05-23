@@ -54,7 +54,7 @@ flowchart LR
 
 ## Küsimused
 
-1. Kas võlapäevad tulevad failist või arvutatakse maksetähtaja ja raportikuupäeva põhjal?
-2. Kas ühe lepingu kohta võib samal päeval olla mitu rida?
-3. Kas vigased read tuleb parandada käsitsi või välistada automaatselt?
-4. Kas backfill peab toetama ühe päeva, perioodi või kogu ajaloo uuesti laadimist?
+1. Kas võlapäevad tulevad failist või arvutatakse maksetähtaja ja raportikuupäeva põhjal? Võlapäevad tulevad algandmetest, failist.
+2. Kas ühe lepingu kohta võib samal päeval olla mitu rida? Jah.
+3. Kas vigased read tuleb parandada käsitsi või välistada automaatselt? Käsitsi parandada.
+4. Kas backfill peab toetama ühe päeva, perioodi või kogu ajaloo uuesti laadimist? Ühe päeva laadimine, käsitsi käivitamisel.
