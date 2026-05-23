@@ -56,6 +56,6 @@ Ingest teenus peab säilitama algse payloadi JSONB väljana, sest SAP faili veer
 
 ## Küsimused
 
-1. Kas sisendfail on alati XLSX?
-2. Kas veerunimed on alati samad?
-3. Kas võlapäevad tulevad failist või arvutatakse maksetähtaja ja raportikuupäeva põhjal?
+1. Kas sisendfail on alati XLSX? Jah.
+2. Kas veerunimed on alati samad? Jah.
+3. Kas võlapäevad tulevad failist või arvutatakse maksetähtaja ja raportikuupäeva põhjal? Tulevad failist.
