@@ -41,7 +41,7 @@ flowchart LR
 | Transform Service | Täidab mart tabelid ja KPI-d. | SQL, Python või dbt-stiilis SQL |
 | PostgreSQL | Hoiab staging, quality, mart ja logs skeeme. | PostgreSQL |
 | Dashboard API | Teenindab dashboardi päringuid. | PHP (Node.js + Express) |
-| JS Frontend | Kuvab KPI-d ja graafikud. | HTML, CSS, Vanilla JS, Apache Echarts, (Chart.js) |
+| JS Frontend | Kuvab KPI-d ja graafikud. | HTML, CSS, Apache Echarts, Vanilla JS, (Chart.js) |
 | Future ML Service | Arvutab riskiskoori või trendiprognoosi. | Hilisem eraldi teenus |
 
 ## Tehnilised Märkused
@@ -50,6 +50,6 @@ Kõik sisemised teenused suhtlevad Docker Compose võrgus. API peab lugema eelar
 
 ## Küsimused
 
-1. Kas tulevane ML komponent peab olema eraldi teenus?
+1. Kas tulevane ML komponent peab olema eraldi teenus? Hilisem eraldi teenus.
 2. Kas API peab toetama ainult dashboardi või ka väliseid süsteeme? Toetab ainult dashboardi (PHP).
-3. Kas failikataloog on lokaalne volume või võrguketas? Võrguketas
+3. Kas failikataloog on lokaalne volume või võrguketas? Võrguketas.
