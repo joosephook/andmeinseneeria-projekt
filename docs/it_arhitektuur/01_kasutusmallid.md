@@ -50,6 +50,6 @@ Kasutusmallid realiseeritakse Docker Compose teenustena. Päevane automaatne tö
 
 ## Küsimused
 
-1. Kas dashboard vajab autentimist?
-2. Kas raporti eksport peab olema CSV, XLSX või PDF?
-3. Kas vajalik on teavitamine e-posti, Slacki või muu kanali kaudu?
+1. Kas dashboard vajab autentimist? Ei.
+2. Kas raporti eksport peab olema CSV, XLSX või PDF? Ei. Graafikud kuvatakse Apache Echart abil (javascript põhine dashboard).
+3. Kas vajalik on teavitamine e-posti, Slacki või muu kanali kaudu? Ei
