@@ -60,6 +60,6 @@ Iga samm peab kirjutama staatuse `logs.pipeline_runs` tabelisse. Kui ingest ei l
 
 ## Küsimused
 
-1. Kas ebaõnnestunud sammu korral tehakse automaatne retry?
-2. Kas dashboard peab kuvama pooleli oleva laadimise staatust?
-3. Kas töövoog võib töödelda mitu uut faili ühes käivituses?
+1. Kas ebaõnnestunud sammu korral tehakse automaatne retry? Jah. 
+2. Kas dashboard peab kuvama pooleli oleva laadimise staatust? Ei.
+3. Kas töövoog võib töödelda mitu uut faili ühes käivituses? Ei, üks fail ühes käivituses.
