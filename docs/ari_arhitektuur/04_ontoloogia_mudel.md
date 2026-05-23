@@ -50,6 +50,6 @@ Diagrammis kasutatakse ASCII-põhiseid sõlme ID-sid, et Mermaid renderdus oleks
 
 ## Küsimused
 
-1. Kas riskiskoor peab olema lepingu-, ettevõtte- või portfellitaseme mõõdik?
-2. Kas trendi arvutatakse päevase, nädalase või kuise perioodi põhjal?
-3. Kas registrikood on alati täidetud ja usaldusväärne?
+1. Kas riskiskoor peab olema lepingu-, ettevõtte- või portfellitaseme mõõdik? Ettevõtte põhine.
+2. Kas trendi arvutatakse päevase, nädalase või kuise perioodi põhjal? Kuise perioodi põhjal.
+3. Kas registrikood on alati täidetud ja usaldusväärne? Registrikood on alati täidetud kuid see ei ole reaalne kood vaid andmed on anonümiseeritud - koode on muutetud.
