@@ -255,7 +255,7 @@ Vajalikud muutujad:
 
 ## Meeskond
 
-| Nimi | Roll |
+| Nimi | Roll Sprint 1|
 |---|---|
 | Jaan | Andmed |
 | Joosep | Git |
