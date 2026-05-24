@@ -48,8 +48,4 @@ flowchart LR
 
 Kõik sisemised teenused suhtlevad Docker Compose võrgus. API peab lugema eelarvutatud mart andmeid, mitte tegema raskeid transformatsioone kasutaja päringu ajal.
 
-## Küsimused
 
-1. Kas tulevane ML komponent peab olema eraldi teenus? Hilisem eraldi teenus.
-2. Kas API peab toetama ainult dashboardi või ka väliseid süsteeme? Toetab ainult dashboardi (PHP).
-3. Kas failikataloog on lokaalne volume või võrguketas? Võrguketas.

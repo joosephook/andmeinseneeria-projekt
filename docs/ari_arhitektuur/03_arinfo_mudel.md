@@ -16,7 +16,7 @@ Ulatus hõlmab ettevõtet, lepingut, võlakirjet, SAP faili, sissevõtu tööd, 
 |---|---|---|
 | Ettevõte | Laenuklient või võlas olev osapool. | registrikood, nimi |
 | Leping | Ettevõttega seotud laenuleping. | lepingu number, registrikood |
-| Võlakirje | Ühe lepingu võlaolukord raportikuupäeval. | võlasumma, võlapäevad, raportikuupäev |
+| Võlakirje | Ühe lepingu võlaolukord raportikuupäeval. Kui algfailis puudub `võlapäevad`, tähendab see tavaliselt, et summa pole veel võlas (tähtaeg on aruande kuupäev) ning seda rida ei kaasata võlasummade koonditesse. | võlasumma, võlapäevad, raportikuupäev |
 | SAP fail | Allikafail, mis sisaldab võlaandmeid. | failinimi, kontrollsumma, raportikuupäev |
 | Sissevõtu töö | Faili laadimise käivitus. | algus, lõpp, staatus |
 | Kvaliteedikontroll | Rea või faili valideerimise tulemus. | reegel, staatus, veateade |
@@ -39,8 +39,4 @@ erDiagram
 
 Äriobjektid kaardistuvad PostgreSQL-i tabelitesse. Ettevõte ja leping muutuvad dimensioonideks, võlakirje muutub faktitabeli reaks ning SAP fail muutub faili dimensiooniks ja staging metaandmeteks.
 
-## Küsimused
 
-1. Kas andmetes on ainult juriidilised isikud või ka füüsilised isikud? Mõlemad. Aga projektitöös on koodid muudetud ja eristada pole võimaik.
-2. Kas ühe lepingu kohta võib samal päeval olla mitu rida? Jah.
-3. Kas ettevõtte nimi tuleb SAP failist või mõnest eraldi registrist? Nimi tuleb SAP failist. Aga jällegi, konfidentsiaalsuse huvides on nimed kustutatud, aruandlus käib registrikoodide kaupa ning need on muudetud.

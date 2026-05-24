@@ -21,6 +21,14 @@ SAP salvestab jagatud kataloogi regulaarselt XLSX faili, mis sisaldab võlgnevus
 | Summa | võlasumma | numeric | jah |
 | Võlapäevad | võlapäevade arv | integer | sõltub allikast |
 
+## Faili ja aruande reeglid
+
+| Reegel | Kirjeldus |
+|---|---|
+| Failinimi | Allikas kasutab alati sama faili nime: "LN002 Laenude võlgnevus.xlsx" — erinevad raportikuupäevad peidetakse alamkataloogide või faili metaandmetesse. |
+| Raporti kuupäev | Raporti kuupäev leitakse faili metadata'st (`date modified`) ja kirjeldatakse kui metadata kuupäevist lahutatud üks päev (andmeladu töötab päevase hilinemisega). |
+| Alamkataloogid | Sarnase nimega failid võivad asuda alamkataloogides (nt `aruanne/2026-01-31/LN002 Laenude võlgnevus.xlsx`). Ingest peab korjama kõik alamkataloogid ja lugema sama nimetusega failid. |
+
 ## Metaandmed
 
 | Metaandme väli | Kirjeldus |
@@ -54,8 +62,4 @@ SAP salvestab jagatud kataloogi regulaarselt XLSX faili, mis sisaldab võlgnevus
 
 Ingest teenus peab säilitama algse payloadi JSONB väljana, sest SAP faili veerunimed või formaat võivad aja jooksul muutuda. Tüübiteisendused ja kvaliteedikontrollid tuleb logida nii, et vigase rea põhjus oleks hiljem leitav.
 
-## Küsimused
 
-1. Kas sisendfail on alati XLSX? Jah.
-2. Kas veerunimed on alati samad? Jah.
-3. Kas võlapäevad tulevad failist või arvutatakse maksetähtaja ja raportikuupäeva põhjal? Tulevad failist.

@@ -1,35 +1,4 @@
-# Relatsiooniline PostgreSQL Andmemudel
-
-## Eesmärk
-
-Dokumendi eesmärk on kirjeldada PostgreSQL skeemid, tabelid, seosed, indeksid ja constraintid, mille abil SAP võlaandmed laaditakse, kontrollitakse ja teisendatakse analüütiliseks kihiks.
-
-## Ulatus
-
-Ulatus hõlmab skeeme `staging`, `quality`, `mart` ja `logs` ning põhitabeleid toorandmete, kvaliteeditulemuste, pipeline logide ja dashboardi mart kihi jaoks.
-
-## Põhikirjeldus
-
-Andmemudel jaguneb neljaks kihiks. `staging` hoiab failide metaandmeid ja toorread. `quality` hoiab valideerimistulemusi. `logs` hoiab töövoo käivituste infot. `mart` hoiab dashboardi ja tulevase ML komponendi jaoks sobivaid dimensioone ja faktitabeleid.
-
-## Skeemid Ja Tabelid
-
-| Skeem | Tabel | Roll |
-|---|---|---|
-| `staging` | `raw_debt_rows` | SAP failist loetud toorread. |
-| `staging` | `ingested_files` | Failide metaandmed ja duplikaadikontroll. |
-| `quality` | `quality_results` | Rea- ja failipõhised kvaliteeditulemused. |
-| `logs` | `pipeline_runs` | Pipeline käivituste logi. |
-| `mart` | `dim_company` | Ettevõtte dimensioon. |
-| `mart` | `dim_contract` | Lepingu dimensioon. |
-| `mart` | `dim_date` | Kuupäeva dimensioon. |
-| `mart` | `dim_file` | Faili dimensioon. |
-| `mart` | `fact_debt_snapshot` | Päevane lepingu võlasnapshot. |
-| `mart` | `kpi_daily_debt` | Päevased dashboardi KPI-d. |
-
-## DDL Näited
-
-```sql
+-- Minimal schema init for the pipeline (staging, quality, mart, logs)
 CREATE SCHEMA IF NOT EXISTS staging;
 CREATE SCHEMA IF NOT EXISTS quality;
 CREATE SCHEMA IF NOT EXISTS mart;
@@ -113,42 +82,17 @@ CREATE TABLE IF NOT EXISTS mart.fact_debt_snapshot (
     file_key BIGINT NOT NULL REFERENCES mart.dim_file(file_key),
     snapshot_date DATE NOT NULL,
     debt_amount NUMERIC(18,2) NOT NULL,
-    -- debt_days can be NULL when source file does not report it (means not yet in debt)
     debt_days INTEGER,
     UNIQUE (contract_key, snapshot_date),
-    -- allow NULL but enforce non-negative when present
     CHECK (debt_days IS NULL OR debt_days >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS mart.kpi_daily_debt (
     snapshot_date DATE PRIMARY KEY,
     total_debt_amount NUMERIC(18,2),
-    -- Weighted average calculated only over rows that are in debt (debt_days > 0)
     weighted_avg_debt_days NUMERIC(18,4),
     max_debt_days INTEGER,
     debt_contract_count INTEGER,
     debt_company_count INTEGER,
     calculated_at TIMESTAMPTZ DEFAULT now()
 );
-```
-
-## Indeksid Ja Constraintid
-
-| Objekt | Soovitus | Põhjus |
-|---|---|---|
-| `staging.ingested_files.file_checksum` | `UNIQUE` | Takistab sama faili korduslaadimist. |
-| `staging.raw_debt_rows(file_id, row_number)` | `UNIQUE` | Tagab rea kordumatuse faili sees. |
-| `mart.fact_debt_snapshot(contract_key, snapshot_date)` | `UNIQUE` | Üks rida ühe lepingu ühe raportikuupäeva kohta. |
-| `mart.fact_debt_snapshot(snapshot_date)` | indeks | Kiirendab dashboardi ajafiltreid. |
-| `mart.dim_company.registry_code` | `UNIQUE` ja indeks | Kiirendab ettevõtte järgi filtreerimist. |
-| `debt_amount` | `CHECK (debt_amount >= 0)` mart kihis | Mart kihis ei tohiks olla negatiivseid võlasummasid. |
-| `debt_days` | `CHECK (debt_days >= 0)` mart kihis | Võlapäevad ei tohiks olla negatiivsed. |
-
-## Tehnilised Märkused
-
-Staging kihis võib lubada rohkem puudulikke väärtusi, sest kvaliteedikontroll peab suutma vigased read salvestada ja raporteerida. Mart kihis tuleb kasutada rangemaid constraint'e, sest see kiht teenindab dashboardi ja analüütilisi päringuid.
-
-## Viimati skripti käivitamine
-- Aeg (UTC): 2026-05-24T13:55:17+00:00
-- Kirjeldus: pipeline ingest/transform run
-

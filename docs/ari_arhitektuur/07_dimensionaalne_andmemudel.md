@@ -79,8 +79,4 @@ erDiagram
 
 `dim_date` võimaldab perioodipõhist filtreerimist ilma kuupäeva arvutusi iga päringu ajal kordamata. `dim_file` võimaldab jälgida, millisest SAP failist konkreetne snapshot pärineb.
 
-## Avatud Küsimused
 
-1. Kas ettevõtte dimensiooni tuleb lisada segment, riskiklass või kliendihaldur? Projektitöös vast ärme lisame; reaalses kasutuses panen hiljem juurde.
-2. Kas lepingu dimensioon vajab lepingu alguse ja lõpu kuupäeva? Ei.
-3. Kas failid võivad sisaldada mitut raportikuupäeva? Ühes failis on ainult üks raporti kuupäev.

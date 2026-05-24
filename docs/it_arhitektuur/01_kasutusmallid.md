@@ -48,8 +48,4 @@ flowchart LR
 
 Kasutusmallid realiseeritakse Docker Compose teenustena. Päevane automaatne töövoog käivitub cron scheduleris, kuid arendaja või administraator peab saama vajadusel samu samme käsitsi käivitada.
 
-## Küsimused
 
-1. Kas dashboard vajab autentimist? Ei.
-2. Kas raporti eksport peab olema CSV, XLSX või PDF? Ei. Graafikud kuvatakse Apache Echart abil (javascript põhine dashboard).
-3. Kas vajalik on teavitamine e-posti, Slacki või muu kanali kaudu? Jah, vea korral andmete sisse laadimisel.

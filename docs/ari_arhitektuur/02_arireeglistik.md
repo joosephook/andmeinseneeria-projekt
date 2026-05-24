@@ -16,9 +16,9 @@ Võlas leping on leping, mille võlapäevade arv on suurem kui null või mille v
 
 | Reegel | Kirjeldus | Rakenduskoht | Märkus |
 |---|---|---|---|
-| Võlas lepingu definitsioon | Leping on võlas, kui `võlapäevad > 0`. | `mart.fact_debt_snapshot`, KPI vaated | Kui võlapäevad puuduvad, tuleb täpsustada alternatiivne reegel. |
+| Võlas lepingu definitsioon | Leping on võlas, kui `võlapäevad > 0`. Kui võlapäevade väli puudub või on 0, käsitletakse rida kui mitte-võlas ja seda ei kaasata võlasummade koonditesse. | `mart.fact_debt_snapshot`, KPI vaated | Puuduv võlapäevade väli tähendab tavaliselt, et summa ei ole veel võlas (tähtaeg on aruande kuupäev). |
 | Võlasumma definitsioon | Võlasumma on tasumata summa numbrilise väärtusena. | ingest, quality, transform | Negatiivne summa vajab eraldi märgistamist. |
-| Võlapäevade definitsioon | Võlapäevad on päevade arv maksetähtaja ületamisest. | quality, transform | Võib tulla failist või olla arvutatav. |
+| Võlapäevade definitsioon | Võlapäevad on päevade arv maksetähtaja ületamisest. Võlapäevade väli võetakse eelistatult failist; kui väli puudub, loetakse võlapäevadeks 0 ja rida ei kuulu "võlas" klassi. | quality, transform | Kui väli puudub, tähendab see tihti, et summa on alles tähtaegne ning seda võib kõrvale jätta koonditelt. |
 | Kaalutud keskmine | `SUM(võlapäevad * võlasumma) / SUM(võlasumma)`. | mart KPI vaade | Jagamine nulliga välditakse `NULLIF` abil. |
 | Maksimaalne võlapäevade arv | `MAX(võlapäevad)`. | mart KPI vaade | Arvutatakse valitud perioodi või snapshoti kohta. |
 | Võlas lepingute arv | `COUNT(leping_id) WHERE võlapäevad > 0`. | dashboard API | Vajab lepingu unikaalset võtit. |
@@ -52,9 +52,4 @@ flowchart LR
 
 Ärireeglid tuleb realiseerida nii SQL-is kui ka teenuste valideerimisloogikas. Reeglite tulemused salvestatakse `quality` või `logs` skeemi, et dashboard saaks näidata failide laadimise staatust ja vigade arvu.
 
-## Küsimused
 
-1. Kas võlapäevad tulevad failist või arvutatakse maksetähtaja ja raportikuupäeva põhjal? Võlapäevad tulevad algandmetest, failist.
-2. Kas ühe lepingu kohta võib samal päeval olla mitu rida? Jah.
-3. Kas vigased read tuleb parandada käsitsi või välistada automaatselt? Käsitsi parandada.
-4. Kas backfill peab toetama ühe päeva, perioodi või kogu ajaloo uuesti laadimist? Ühe päeva laadimine, käsitsi käivitamisel.

@@ -1,0 +1,2 @@
+# run pipeline daily at 02:00
+0 2 * * * root /app/scripts/run_pipeline.sh >> /var/log/pipeline/run.log 2>&1

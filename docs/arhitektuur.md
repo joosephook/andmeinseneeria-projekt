@@ -116,11 +116,4 @@ flowchart LR
 
 Projekt kasutab ettevõtte sisemisi lepingu- ja kliendiandmeid. Dashboardis tuleks eelistada agregeeritud vaateid ning ligipääs tuleb vajadusel kaitsta autentimise ja rollipõhiste õigustega. Andmebaasi paroolid ja muud saladused peavad olema `.env` failis, mida Giti ei lisata.
 
-## Avatud Küsimused
 
-1. Kas sisendfail on alati XLSX? - Jah, alati on xlsx.
-2. Kas võlapäevad tulevad failist või arvutatakse maksetähtaja ja raportikuupäeva põhjal? - Võlapäevad tulevad failist, arvutada pole vaja.
-3. Kas ühe lepingu kohta võib samal päeval olla mitu rida? - Jah, reeglina ongi ühe lepingu kohta mitu rida.
-4. Kas dashboard vajab autentimist? - Ei.
-5. Kui kaua tuleb toorfaile ja laadimisajalugu säilitada? - Staging tabeleid võiks säilitada 7 päeva.
-6. Kas tulevane ML komponent peab olema eraldi teenus? 
