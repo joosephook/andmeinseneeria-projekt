@@ -1,12 +1,11 @@
 import os
 import psycopg2
 from datetime import datetime
+import time
+import logging
+from utils import attempt_db_connect
 
-POSTGRES_HOST = os.environ.get('POSTGRES_HOST', 'postgres')
-POSTGRES_PORT = int(os.environ.get('POSTGRES_PORT', 5432))
-POSTGRES_DB = os.environ.get('POSTGRES_DB', 'debtdb')
-POSTGRES_USER = os.environ.get('POSTGRES_USER', 'postgres')
-POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', '')
+LOGGER = logging.getLogger(__file__)
 
 def ensure_dim_date(cur, report_date):
     date_key = int(report_date.strftime('%Y%m%d'))
@@ -100,10 +99,12 @@ def compute_kpis(cur):
       calculated_at = EXCLUDED.calculated_at;
     """)
 
-def main():
-    conn = psycopg2.connect(host=POSTGRES_HOST, port=POSTGRES_PORT, dbname=POSTGRES_DB,
-                            user=POSTGRES_USER, password=POSTGRES_PASSWORD)
-    conn.autocommit = False
+def do_transform():
+    result = attempt_db_connect(LOGGER)
+    if result is None or isinstance(result, psycopg2.OperationalError):
+        LOGGER.error(result)
+        return
+    conn = result
     try:
         with conn.cursor() as cur:
             # fetch files marked ingested (or all)
@@ -118,7 +119,6 @@ def main():
                 except Exception as e:
                     conn.rollback()
                     print('Error processing file', f[1], e)
-
             # recompute KPIs
             compute_kpis(cur)
             conn.commit()
@@ -126,4 +126,4 @@ def main():
         conn.close()
 
 if __name__ == '__main__':
-    main()
+    do_transform()
