@@ -3,15 +3,13 @@ import hashlib
 import psycopg2
 import pandas as pd
 from datetime import datetime, timedelta
+import logging
+from utils import attempt_db_connect
+
+LOGGER = logging.getLogger(__file__)
 
 # Configuration via env
 ARUANNE_DIR = os.environ.get('ARUANNE_DIR', '/data/aruanne')
-POSTGRES_HOST = os.environ.get('POSTGRES_HOST', 'postgres')
-POSTGRES_PORT = int(os.environ.get('POSTGRES_PORT', 5432))
-POSTGRES_DB = os.environ.get('POSTGRES_DB', 'debtdb')
-POSTGRES_USER = os.environ.get('POSTGRES_USER', 'postgres')
-POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD', '')
-
 TARGET_FILENAME = os.environ.get('TARGET_FILENAME', 'LN002 Laenude võlgnevus.xlsx')
 
 def file_checksum(path):
@@ -45,8 +43,30 @@ def map_columns(df):
 
     return registry, contract, amount, days
 
+def truncate(conn):
+    with conn.cursor() as cur:
+        # insert ingested file
+        cur.execute(
+            """
+            TRUNCATE staging.ingested_files,
+            staging.raw_debt_rows,
+            staging.ingested_files,
+            staging.raw_debt_rows,
+            quality.quality_results,
+            logs.pipeline_runs,
+            mart.dim_company,
+            mart.dim_contract,
+            mart.dim_date,
+            mart.dim_file,
+            mart.fact_debt_snapshot,
+            mart.kpi_daily_debt
+            """,
+        )
+    conn.commit()
+
+
 def ingest_file(conn, path):
-    print('Ingesting', path)
+    LOGGER.info(f'Ingesting {path=}')
     checksum = file_checksum(path)
     mtime = datetime.fromtimestamp(os.path.getmtime(path))
     report_date = (mtime - timedelta(days=1)).date()
@@ -89,21 +109,28 @@ def ingest_file(conn, path):
         conn.commit()
         print(f'Inserted {len(rows)} rows for file_id={file_id}')
 
-def main():
+def do_ingest():
     files = discover_files(ARUANNE_DIR)
     if not files:
-        print('No files found in', ARUANNE_DIR)
+        LOGGER.info('No files found in', ARUANNE_DIR)
         return
 
-    conn = psycopg2.connect(host=POSTGRES_HOST, port=POSTGRES_PORT, dbname=POSTGRES_DB,
-                            user=POSTGRES_USER, password=POSTGRES_PASSWORD)
-    for f in files:
+    result = attempt_db_connect(LOGGER)
+    if result is None or isinstance(result, psycopg2.OperationalError):
+        LOGGER.error(result)
+        return
+    conn = result
+
+    truncate(conn)
+    LOGGER.info("Truncating tables...")
+    for file in files:
         try:
-            ingest_file(conn, f)
-        except Exception as e:
-            print('Error ingesting', f, e)
+            ingest_file(conn, file)
+        except Exception as error:
+            LOGGER.error(f'Error ingesting {file=}: {error=}', file, error)
 
     conn.close()
+    return True
 
 if __name__ == '__main__':
-    main()
+    do_ingest()

@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+  pipeline:
+    build: ./services/
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ARUANNE_DIR: /data/aruanne
+      TARGET_FILENAME: 'LN002 Laenude võlgnevus.xlsx'
+    volumes:
+      - ./TMP/aruanne:/data/aruanne:ro
+      - ./services/utils.py:/app/utils.py:ro
+      - ./services/ingest.py:/app/ingest.py:ro
+      - ./services/transform.py:/app/transform.py:ro
+      - ./services/run_pipeline.py:/app/run_pipeline.py:ro
+      - ./logs:/app/logs/
+    working_dir: /app 
+    command: python run_pipeline.py
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  pgdata:
