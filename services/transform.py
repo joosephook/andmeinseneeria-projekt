@@ -119,7 +119,8 @@ def do_transform():
                     conn.commit()
                 except Exception as error:
                     conn.rollback()
-                    LOGGER.error(f'Error processing {file_name=}: {error=} {traceback.extract_tb()=}')
+                    LOGGER.error(f'Error processing {file_name=}: {error=}')
+                    LOGGER.error(traceback.format_exception(error))
             # recompute KPIs
             compute_kpis(cur)
             conn.commit()
