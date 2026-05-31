@@ -52,7 +52,13 @@ Täida see lühike malle iga osaleja kohta enne sprinti lõpetamist.
 ---
 
 ## ST (Sorell Tudelep)
-- Mis on valmis: 
-- Järgmised sammud: 
-- Mis takistab: 
-- Kontrollpunkt: SQL päringud (nt `select count(*) from staging.raw_debt_rows;`) ja testide käivitamise juhend
+- Mis on valmis: lisasin ingest-faasi andmekvaliteedi kontrollid. Iga sisendrea kohta kontrollitakse registrikoodi, lepingu numbri, võlasumma ja võlapäevade väärtuseid. Kontrollide tulemused salvestatakse tabelisse quality.quality_results staatustega PASSED või FAILED.
+- Järgmised sammud: kvaliteedikontrollide laiendamine ja tulemuste sidumine täpsemalt konkreetsete andmeridadega. lisada mart-kihi järelkontrollid, mis kontrollivad `mart.fact_debt_snapshot` ja `mart.kpi_daily_debt` tabelite täitumist.
+- Mis takistab: otseseid takistusi ei ole
+- Kontrollpunkt: 
+    Pipeline käivitamine:
+    `docker compose up --build`
+  Kontroll, et andmed laaditi stagingusse:
+  `docker compose exec postgres psql -U debtuser -d debtdb -c "select count(*) from staging.raw_debt_rows;"`
+  Kontroll, et kvaliteedikontrollid käivitusid:
+  `docker compose exec postgres psql -U debtuser -d debtdb -c "select status, rule_code, count(*) from quality.quality_results group by status, rule_code order by rule_code, status;"`
