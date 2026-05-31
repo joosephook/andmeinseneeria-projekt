@@ -49,6 +49,7 @@ def process_file(cur, file_id, file_name, file_checksum, report_date):
 
     cur.execute("SELECT raw_row_id, row_number, registry_code, contract_number, debt_amount, debt_days, raw_payload FROM staging.raw_debt_rows WHERE file_id = %s", (file_id,))
     rows = cur.fetchall()
+    LOGGER.info(f'Processing file {file_name=}')
     for raw_row_id, row_number, registry_code, contract_number, debt_amount, debt_days, raw_payload in rows:
         company_key = upsert_company(cur, registry_code)
         contract_key = upsert_contract(cur, contract_number, company_key) if company_key is not None else None
@@ -58,7 +59,7 @@ def process_file(cur, file_id, file_name, file_checksum, report_date):
 
         # ensure contract_key exists; if not, skip row
         if contract_key is None:
-            LOGGER.info('warning: contract_key is none, skipping fact_debt_snapshot update')
+            LOGGER.warning(f'{file_name=}: contract_key is none, skipping fact_debt_snapshot update')
             # write a quality result? for now skip
             continue
 
@@ -73,7 +74,9 @@ def process_file(cur, file_id, file_name, file_checksum, report_date):
             (company_key, contract_key, date_key, file_key, snapshot_date, debt_amount if debt_amount is not None else 0, debt_days)
         )
 
+
 def compute_kpis(cur):
+    LOGGER.info('Computing KPIs...')
     cur.execute("""
     INSERT INTO mart.kpi_daily_debt (snapshot_date, total_debt_amount, weighted_avg_debt_days, max_debt_days, debt_contract_count, debt_company_count, calculated_at)
     SELECT

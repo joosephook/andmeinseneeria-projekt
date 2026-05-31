@@ -46,6 +46,10 @@ def truncate(conn):
             """,
         )
     conn.commit()
+
+def map_columns(df):
+    return df['Reg.kood'], df['SAP laenulepingu number'], df['Summa'], df['Ületatud päevi']
+
 def normalize_registry(value):
     if pd.isna(value):
         return None
@@ -118,19 +122,11 @@ def add_quality_result(cur, file_id, raw_row_id, rule_code, status, message):
     )
 
 
-def validate_required_columns(registry_col, contract_col, amount_col):
-    missing = []
-
-    if not registry_col:
-        missing.append("registrikood")
-    if not contract_col:
-        missing.append("lepingu number")
-    if not amount_col:
-        missing.append("võlasumma")
+def validate_required_columns(df: pd.DataFrame, must_have_columns: list[str]):
+    missing  = [ col for col in must_have_columns if col not in df.columns]
 
     if missing:
         raise ValueError("Puuduvad kohustuslikud veerud: " + ", ".join(missing))
-
 
 def ingest_file(conn, path):
     LOGGER.info(f'Ingesting {path=}')
@@ -140,9 +136,10 @@ def ingest_file(conn, path):
     report_date = (mtime - timedelta(days=1)).date()
 
     df = pd.read_excel(path, skiprows=3, header=0, dtype_backend='pyarrow')
-    df['Rida'] = list(range(1, len(df)+1))
+    columns = ['Reg.kood', 'SAP laenulepingu number', 'Summa', 'Ületatud päevi']
+    validate_required_columns(df, columns)
+
     registry_col, contract_col, amount_col, days_col = map_columns(df)
-    validate_required_columns(registry_col, contract_col, amount_col)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -169,11 +166,11 @@ def ingest_file(conn, path):
         )
         file_id = cur.fetchone()[0]
         rows = []
-        for idx, row in df.iterrows():
-            registry = normalize_registry(row.get(registry_col) if registry_col else None)
-            contract = normalize_contract(row.get(contract_col) if contract_col else None)
-            amount = normalize_amount(row.get(amount_col) if amount_col else None)
-            days = normalize_days(row.get(days_col) if days_col else None)
+        for idx, raw_registry, raw_contract, raw_amount, raw_days in df[columns].itertuples():
+            registry = normalize_registry(raw_registry)
+            contract = normalize_contract(raw_contract)
+            amount = normalize_amount(raw_amount)
+            days = normalize_days(raw_days)
 
             if registry is None:
                 add_quality_result(
@@ -203,6 +200,7 @@ def ingest_file(conn, path):
         insert_sql = (
             "INSERT INTO staging.raw_debt_rows (file_id, row_number, registry_code, contract_number, debt_amount, debt_days, raw_payload)"
             " VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        )
         cur.executemany(insert_sql, rows)
         conn.commit()
         LOGGER.info(f'Inserted {len(rows)} rows for file_id={file_id}')
