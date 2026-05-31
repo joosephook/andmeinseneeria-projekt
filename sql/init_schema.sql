@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS staging.raw_debt_rows (
     file_id BIGINT REFERENCES staging.ingested_files(file_id),
     row_number INTEGER NOT NULL,
     registry_code TEXT,
-    contract_number TEXT,
-    debt_amount NUMERIC(18,2),
+    contract_number TEXT NOT NULL,
+    debt_amount NUMERIC(18,2) NOT NULL,
     debt_days INTEGER,
     raw_payload JSONB,
     loaded_at TIMESTAMPTZ DEFAULT now()

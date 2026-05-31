@@ -26,23 +26,6 @@ def discover_files(base_dir):
             matches.append(os.path.join(root, TARGET_FILENAME))
     return matches
 
-def map_columns(df):
-    # lowercase columns
-    cols = {c.lower(): c for c in df.columns}
-    # mapping heuristics
-    def find(key_sub):
-        for k in cols:
-            if key_sub in k:
-                return cols[k]
-        return None
-
-    registry = find('reg') or find('registr') or find('registry_code')
-    contract = find('lepingu') or find('contract')
-    amount = find('sum') or find('debt')
-    days = find('võlap') or find('päev') or find('days')
-
-    return registry, contract, amount, days
-
 def truncate(conn):
     with conn.cursor() as cur:
         # insert ingested file
@@ -73,7 +56,7 @@ def ingest_file(conn, path):
 
 
     df = pd.read_excel(path, skiprows=3, header=0, dtype_backend='pyarrow')
-    registry_col, contract_col, amount_col, days_col = map_columns(df)
+    df['Rida'] = list(range(1, len(df)+1))
 
     with conn.cursor() as cur:
         # insert ingested file
@@ -86,29 +69,26 @@ def ingest_file(conn, path):
             (os.path.basename(path), checksum, path, report_date, 'ingested')
         )
         file_id = cur.fetchone()[0]
-
-        # prepare rows
-        rows = []
-        for idx, row in df.iterrows():
-            registry = row.get(registry_col) if registry_col else None
-            contract = row.get(contract_col) if contract_col else None
-            amount = row.get(amount_col) if amount_col else None
-            days = row.get(days_col) if days_col else None
-            # normalize NaN to None
-            if pd.isna(registry): registry = None
-            if pd.isna(contract): contract = None
-            if pd.isna(amount): amount = None
-            if pd.isna(days): days = None
-
-            rows.append((file_id, int(idx)+1, registry, contract, amount, days, None))
-
-        insert_sql = (
-            "INSERT INTO staging.raw_debt_rows (file_id, row_number, registry_code, contract_number, debt_amount, debt_days, raw_payload)"
-            " VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        data = [
+        (
+            file_id,
+            row_number,
+            registry_code,
+            contract_number,
+            debt_amount,
+            days if not pd.isna(days) else None
         )
-        cur.executemany(insert_sql, rows)
+            for row_number, registry_code, contract_number, debt_amount, days
+            in df[['Rida', 'Reg.kood', 'SAP laenulepingu number', 'Summa', 'Ületatud päevi']].itertuples(index=None)
+
+        ]
+        insert_sql = (
+            "INSERT INTO staging.raw_debt_rows (file_id, row_number, registry_code, contract_number, debt_amount, debt_days)"
+            " VALUES (%s, %s, %s, %s, %s, %s)"
+        )
+        cur.executemany(insert_sql, data)
         conn.commit()
-        LOGGER.info(f'Inserted {len(rows)} rows for file_id={file_id}')
+        LOGGER.info(f'Inserted {len(data)} rows for file_id={file_id}')
 
 def do_ingest():
     files = discover_files(ARUANNE_DIR)
