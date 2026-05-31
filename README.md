@@ -13,6 +13,10 @@
 7. `docker compose exec -it postgres psql -U debtuser -d debtdb -c 'select * from mart.kpi_daily_debt'`: laenuportfelli ülevaade kuu lõikes
 8. `docker compose down -v --remove-orphans`: eemalda volüümid ja andmetoru käsitsi käivitamisel loodud konteinerid
 
+## Dashboard
+
+Peale andmetoru jooksmist mine [http://localhost:5000/dashboard](http://localhost:5000/dashboard)
+
 ## Äriküsimus
 
 Projekt lahendab probleemi, kus ettevõttel puudub automaatne ja ajas võrreldav ülevaade laenuklientide võlgnevustest. SAP-ist saabub regulaarselt XLSX-fail võlaandmetega ning lahendus laadib selle PostgreSQL-i, kontrollib andmekvaliteeti, arvutab KPI-d ja kuvab tulemused dashboardil.
