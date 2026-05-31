@@ -65,6 +65,7 @@ def truncate(conn):
             mart.dim_file,
             mart.fact_debt_snapshot,
             mart.kpi_daily_debt
+            RESTART IDENTITY
             """,
         )
     conn.commit()
