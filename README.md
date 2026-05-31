@@ -16,6 +16,8 @@
 ## Dashboard
 
 Peale andmetoru jooksmist mine [http://localhost:5000/dashboard](http://localhost:5000/dashboard)
+Peaks avanema selline vaatepilt:
+![pilt](./images/sprint-02-dashboard.png)
 
 ## Äriküsimus
 
