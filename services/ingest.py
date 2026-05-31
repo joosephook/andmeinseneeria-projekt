@@ -46,19 +46,118 @@ def truncate(conn):
             """,
         )
     conn.commit()
+def normalize_registry(value):
+    if pd.isna(value):
+        return None
+
+    value = str(value).strip()
+
+    if value.endswith(".0"):
+        value = value[:-2]
+
+    if not value.isdigit():
+        return None
+
+    if len(value) != 8:
+        return None
+
+    return value
+
+
+def normalize_contract(value):
+    if pd.isna(value):
+        return None
+
+    value = str(value).strip()
+
+    if value == "":
+        return None
+
+    return value
+
+
+def normalize_amount(value):
+    if pd.isna(value):
+        return None
+
+    try:
+        value = str(value).replace(",", ".").replace(" ", "").strip()
+        amount = float(value)
+    except Exception:
+        return None
+
+    if amount < 0:
+        return None
+
+    return amount
+
+
+def normalize_days(value):
+    if pd.isna(value) or value == "":
+        return None
+
+    try:
+        days = int(float(str(value).replace(",", ".").strip()))
+    except Exception:
+        return None
+
+    if days < 0:
+        return None
+
+    return days
+
+
+def add_quality_result(cur, file_id, raw_row_id, rule_code, status, message):
+    cur.execute(
+        """
+        INSERT INTO quality.quality_results
+            (file_id, raw_row_id, rule_code, status, message)
+        VALUES (%s, %s, %s, %s, %s)
+        """,
+        (file_id, raw_row_id, rule_code, status, message),
+    )
+
+
+def validate_required_columns(registry_col, contract_col, amount_col):
+    missing = []
+
+    if not registry_col:
+        missing.append("registrikood")
+    if not contract_col:
+        missing.append("lepingu number")
+    if not amount_col:
+        missing.append("võlasumma")
+
+    if missing:
+        raise ValueError("Puuduvad kohustuslikud veerud: " + ", ".join(missing))
 
 
 def ingest_file(conn, path):
     LOGGER.info(f'Ingesting {path=}')
+
     checksum = file_checksum(path)
     mtime = datetime.fromtimestamp(os.path.getmtime(path))
     report_date = (mtime - timedelta(days=1)).date()
 
-
     df = pd.read_excel(path, skiprows=3, header=0, dtype_backend='pyarrow')
     df['Rida'] = list(range(1, len(df)+1))
+    registry_col, contract_col, amount_col, days_col = map_columns(df)
+    validate_required_columns(registry_col, contract_col, amount_col)
 
     with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT file_id
+            FROM staging.ingested_files
+            WHERE file_checksum = %s
+            """,
+            (checksum,)
+        )
+
+        if cur.fetchone():
+            LOGGER.info(f"Duplicate file skipped: {path}")
+            return
+
         # insert ingested file
         cur.execute(
             """
@@ -69,26 +168,44 @@ def ingest_file(conn, path):
             (os.path.basename(path), checksum, path, report_date, 'ingested')
         )
         file_id = cur.fetchone()[0]
-        data = [
-        (
-            file_id,
-            row_number,
-            registry_code,
-            contract_number,
-            debt_amount,
-            days if not pd.isna(days) else None
-        )
-            for row_number, registry_code, contract_number, debt_amount, days
-            in df[['Rida', 'Reg.kood', 'SAP laenulepingu number', 'Summa', 'Ületatud päevi']].itertuples(index=None)
+        rows = []
+        for idx, row in df.iterrows():
+            registry = normalize_registry(row.get(registry_col) if registry_col else None)
+            contract = normalize_contract(row.get(contract_col) if contract_col else None)
+            amount = normalize_amount(row.get(amount_col) if amount_col else None)
+            days = normalize_days(row.get(days_col) if days_col else None)
 
-        ]
+            if registry is None:
+                add_quality_result(
+                    cur, file_id, None,
+                    'REGISTRY_CODE',
+                    'FAILED',
+                    f'Invalid registry code on row {idx + 1}'
+                )
+
+            if contract is None:
+                add_quality_result(
+                    cur, file_id, None,
+                    'CONTRACT_NUMBER',
+                    'FAILED',
+                    f'Missing contract number on row {idx + 1}'
+                )
+
+            if amount is None:
+                add_quality_result(
+                    cur, file_id, None,
+                    'DEBT_AMOUNT',
+                    'FAILED',
+                    f'Invalid debt amount on row {idx + 1}'
+                )
+
+            rows.append((file_id, int(idx) + 1, registry, contract, amount, days, None))
         insert_sql = (
-            "INSERT INTO staging.raw_debt_rows (file_id, row_number, registry_code, contract_number, debt_amount, debt_days)"
-            " VALUES (%s, %s, %s, %s, %s, %s)"
-        )
-        cur.executemany(insert_sql, data)
+            "INSERT INTO staging.raw_debt_rows (file_id, row_number, registry_code, contract_number, debt_amount, debt_days, raw_payload)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        cur.executemany(insert_sql, rows)
         conn.commit()
-        LOGGER.info(f'Inserted {len(data)} rows for file_id={file_id}')
+        LOGGER.info(f'Inserted {len(rows)} rows for file_id={file_id}')
 
 def do_ingest():
     files = discover_files(ARUANNE_DIR)

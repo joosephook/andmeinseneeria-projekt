@@ -24,9 +24,9 @@ Võlas leping on leping, mille võlapäevade arv on suurem kui null või mille v
 | Võlas lepingute arv | `COUNT(leping_id) WHERE võlapäevad > 0`. | dashboard API | Vajab lepingu unikaalset võtit. |
 | Faili sissevõtt | Uus fail loetakse sisse ainult siis, kui kontrollsumma ei ole varem laaditud. | ingest | Failinimi üksi ei ole piisav unikaalsuse alus. |
 | Duplikaatide käsitlus | Sama failikontrollsummaga faili ei laadita uuesti. | staging.ingested_files | Backfill võib lubada teadlikku taaslaadimist. |
-| Vigased read | Vigased read salvestatakse kvaliteeditulemusega ja neid mart kihti ei kanta. | quality | Vajalik on vea põhjus. |
+| Vigased read | Vigased read salvestatakse staging kihti ning nende kohta luuakse kvaliteeditulemus. Transformatsiooni käigus jäetakse vigased read mart kihist välja. | quality | Vajalik on vea põhjus. |
 | Backfill | Ajaloolisi faile saab taas töödelda päeva, perioodi või kogu ajaloo lõikes. | scheduler, ingest, transform | Täpne ulatus on avatud küsimus. |
-| Registrikoodi kontroll | Registrikood peab vastama kokkulepitud formaadile. | quality | Eesti juriidilise isiku puhul üldjuhul 8 numbrit. |
+| Registrikoodi kontroll | Registrikood peab olema täpselt 8 numbrit. | quality | Eesti juriidilise isiku puhul üldjuhul 8 numbrit. |
 | Lepingu numbri kontroll | Lepingu number peab olema täidetud. | quality | Puuduv leping takistab lepingupõhist analüüsi. |
 | Võlasumma kontroll | Võlasumma peab olema arvuline. | quality | Tühjad ja mittearvulised väärtused eraldatakse. |
 | Võlapäevade kontroll | Võlapäevad peavad olema mitte-negatiivne täisarv, kui väli on failis olemas. | quality | Negatiivsed väärtused märgitakse veaks. |
