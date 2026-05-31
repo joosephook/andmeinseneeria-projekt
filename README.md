@@ -1,5 +1,15 @@
 # Andmeinseneeria projekt — võlgnevuste analüüsi andmetoru
 
+## Docker Quickstart
+1. `cp .env.example .env`
+2. `unzip docs/aruanne.zip`
+    * tulemus: kataloog 'aruanne' koos raportitega on repo root kaustas
+3. `docker compose up`
+    * tulemus: loodud ja valmis pandud andmebaas, andmetoru jookseb automaatselt peale andmebaasi valmisolekut
+4. `docker compose run pipeline`: andmetoru jookseb uuesti
+5. `docker compose exec -it postgres psql -U debtuser -d debtdb`: andmebaasis toimetamiseks
+6. `docker compose down -v --remove-orphans`: eemalda volüümid ja andmetoru käsitsi käivitamisel loodud konteinerid
+
 ## Äriküsimus
 
 Projekt lahendab probleemi, kus ettevõttel puudub automaatne ja ajas võrreldav ülevaade laenuklientide võlgnevustest. SAP-ist saabub regulaarselt XLSX-fail võlaandmetega ning lahendus laadib selle PostgreSQL-i, kontrollib andmekvaliteeti, arvutab KPI-d ja kuvab tulemused dashboardil.
