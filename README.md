@@ -2,6 +2,7 @@
 
 ## Docker Quickstart
 1. `cp .env.example .env`
+    * tulemus: sul on repo root kaustas .env fail
 2. `unzip docs/aruanne.zip`
     * tulemus: kataloog 'aruanne' koos raportitega on repo root kaustas
 3. `docker compose up`
