@@ -26,6 +26,28 @@ def discover_files(base_dir):
             matches.append(os.path.join(root, TARGET_FILENAME))
     return matches
 
+def map_columns(df):
+    # lowercase columns
+    cols = {c.lower(): c for c in df.columns}
+    # mapping heuristics
+    def find(key_sub):
+        for k in cols:
+            if key_sub in k:
+                return cols[k]
+        return None
+
+    registry = find('reg.kood') or find('reg') or find('registr')
+    contract = (
+        find('sap laenulepingu number')
+        or find('laenulepingu number')
+        or find('laenulepingu nr')
+        or find('lepingu')
+        or find('contract'))
+    amount = find('summa') or find('sum') or find('võlg') or find('debt')
+    days = find('ületatud') or find('päevi') or find('võlap') or find('days')
+
+    return registry, contract, amount, days
+
 def truncate(conn):
     with conn.cursor() as cur:
         # insert ingested file
@@ -46,10 +68,6 @@ def truncate(conn):
             """,
         )
     conn.commit()
-
-def map_columns(df):
-    return df['Reg.kood'], df['SAP laenulepingu number'], df['Summa'], df['Ületatud päevi']
-
 def normalize_registry(value):
     if pd.isna(value):
         return None
@@ -122,11 +140,19 @@ def add_quality_result(cur, file_id, raw_row_id, rule_code, status, message):
     )
 
 
-def validate_required_columns(df: pd.DataFrame, must_have_columns: list[str]):
-    missing  = [ col for col in must_have_columns if col not in df.columns]
+def validate_required_columns(registry_col, contract_col, amount_col):
+    missing = []
+
+    if not registry_col:
+        missing.append("registrikood")
+    if not contract_col:
+        missing.append("lepingu number")
+    if not amount_col:
+        missing.append("võlasumma")
 
     if missing:
         raise ValueError("Puuduvad kohustuslikud veerud: " + ", ".join(missing))
+
 
 def ingest_file(conn, path):
     LOGGER.info(f'Ingesting {path=}')
@@ -134,12 +160,6 @@ def ingest_file(conn, path):
     checksum = file_checksum(path)
     mtime = datetime.fromtimestamp(os.path.getmtime(path))
     report_date = (mtime - timedelta(days=1)).date()
-
-    df = pd.read_excel(path, skiprows=3, header=0, dtype_backend='pyarrow')
-    columns = ['Reg.kood', 'SAP laenulepingu number', 'Summa', 'Ületatud päevi']
-    validate_required_columns(df, columns)
-
-    registry_col, contract_col, amount_col, days_col = map_columns(df)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -155,6 +175,13 @@ def ingest_file(conn, path):
             LOGGER.info(f"Duplicate file skipped: {path}")
             return
 
+    df = pd.read_excel(path, header=3)
+    print(df.columns.tolist())
+    registry_col, contract_col, amount_col, days_col = map_columns(df)
+    
+    validate_required_columns(registry_col, contract_col, amount_col)
+
+    with conn.cursor() as cur:
         # insert ingested file
         cur.execute(
             """
@@ -165,36 +192,34 @@ def ingest_file(conn, path):
             (os.path.basename(path), checksum, path, report_date, 'ingested')
         )
         file_id = cur.fetchone()[0]
+
+        # prepare rows
         rows = []
-        for idx, raw_registry, raw_contract, raw_amount, raw_days in df[columns].itertuples():
-            registry = normalize_registry(raw_registry)
-            contract = normalize_contract(raw_contract)
-            amount = normalize_amount(raw_amount)
-            days = normalize_days(raw_days)
+        for idx, row in df.iterrows():
+            registry = normalize_registry(row.get(registry_col) if registry_col else None)
+            contract = normalize_contract(row.get(contract_col) if contract_col else None)
+            amount = normalize_amount(row.get(amount_col) if amount_col else None)
+            days = normalize_days(row.get(days_col) if days_col else None)
 
             if registry is None:
-                add_quality_result(
-                    cur, file_id, None,
-                    'REGISTRY_CODE',
-                    'FAILED',
-                    f'Invalid registry code on row {idx + 1}'
-                )
+                add_quality_result(cur, file_id, None, 'REGISTRY_CODE', 'FAILED', f'Invalid registry code on row {idx + 1}')
+            else:
+                add_quality_result(cur, file_id, None, 'REGISTRY_CODE', 'PASSED', f'Valid registry code on row {idx + 1}')
 
             if contract is None:
-                add_quality_result(
-                    cur, file_id, None,
-                    'CONTRACT_NUMBER',
-                    'FAILED',
-                    f'Missing contract number on row {idx + 1}'
-                )
+                add_quality_result(cur, file_id, None, 'CONTRACT_NUMBER', 'FAILED', f'Missing contract number on row {idx + 1}')
+            else:
+                add_quality_result(cur, file_id, None, 'CONTRACT_NUMBER', 'PASSED', f'Valid contract number on row {idx + 1}')
 
             if amount is None:
-                add_quality_result(
-                    cur, file_id, None,
-                    'DEBT_AMOUNT',
-                    'FAILED',
-                    f'Invalid debt amount on row {idx + 1}'
-                )
+                add_quality_result(cur, file_id, None, 'DEBT_AMOUNT', 'FAILED', f'Invalid debt amount on row {idx + 1}')
+            else:
+                add_quality_result(cur, file_id, None, 'DEBT_AMOUNT', 'PASSED', f'Valid debt amount on row {idx + 1}')
+
+            if days is None:
+                add_quality_result(cur, file_id, None, 'DEBT_DAYS', 'PASSED', f'Debt days empty or not overdue on row {idx + 1}')
+            else:
+                add_quality_result(cur, file_id, None, 'DEBT_DAYS', 'PASSED', f'Valid debt days on row {idx + 1}')
 
             rows.append((file_id, int(idx) + 1, registry, contract, amount, days, None))
         insert_sql = (
@@ -203,7 +228,7 @@ def ingest_file(conn, path):
         )
         cur.executemany(insert_sql, rows)
         conn.commit()
-        LOGGER.info(f'Inserted {len(rows)} rows for file_id={file_id}')
+        print(f'Inserted {len(rows)} rows for file_id={file_id}')
 
 def do_ingest():
     files = discover_files(ARUANNE_DIR)
@@ -223,7 +248,7 @@ def do_ingest():
         try:
             ingest_file(conn, file)
         except Exception as error:
-            LOGGER.error(f'Error ingesting {file=}: {error=}', file, error)
+            LOGGER.error(f"Error ingesting {file}: {error}")
 
     conn.close()
     return True
