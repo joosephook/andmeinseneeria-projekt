@@ -27,9 +27,9 @@ Täida see lühike malle iga osaleja kohta enne sprinti lõpetamist.
 ---
 
 ## JS (Jaan Soots)
-- Mis on valmis: 
-- Järgmised sammud: 
-- Mis takistab: 
+- Mis on valmis: üks graafik (Apache Echart: html, javascript, php)
+- Järgmised sammud: teha juurde graafikuid ja aruandeid
+- Mis takistab: otseseid takistusi ei ole
 - Kontrollpunkt: näidisandmete asukoht `TMP/aruanne/` ja näidisfaili nimi
 
 ---
