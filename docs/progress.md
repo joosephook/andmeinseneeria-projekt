@@ -4,17 +4,34 @@ Täida see lühike malle iga osaleja kohta enne sprinti lõpetamist.
 
 ## Projekt kokku
 - Mis on valmis: 
+  * töötav, idempotentne andmetoru
+  * 1 transformatsioon, mis loob andmed dashboardi jaoks
+  * 1 dashboard, mis kinnitab, et andmetoru töötab algusest lõpuni
 - Järgmised sammud: 
+  * äriküsimuste täpsustamine aitab aru saada, mis küsimustele vastuseid otsime
+  * graafikute lisamine täiustab dashboardi ning aitab vastata äriküsimustele
+  * vajadusel andmetorus rohkemate andmete sisselugemine, et vastata keerulisematele äriküsimustele
+  * vajadusel andmete täiustamine välistest andmetest, kui äriküsimused seda nõuavad
 - Mis takistab: 
+  * äripoolne nägemus soovib veidi täpsustamist
 - Kontrollpunkt (käsk või link, mille juhendaja saab käivitada): 
+  * [Kliki mind](https://github.com/joosephook/andmeinseneeria-projekt/tree/docs-document#docker-quickstart)
 
 ---
 
 ## JH (Joosep Hook)
 - Mis on valmis: 
+  * andmetoru jookseb dockeris
+  * http api apache echartide tegemiseks jookseb dockeris
+  * dashboard jookseb dockeris ja on kohalikust masinast kättesaadav
+  * pipeline ja api logimine ühte faili
 - Järgmised sammud: 
+  * andmete rikastamine? 
 - Mis takistab: 
-- Kontrollpunkt: `docker compose -f docker-compose.example.yml ps` või `./scripts/prestart.sh -f docker-compose.example.yml`
+  * äripoolne nägemus soovib veidi täpsustamist
+  * täpsed äriküsimused aitavad hinnata, kuhu ressurssi edaspidi suunata
+
+- Kontrollpunkt: docker quickstarti läbimisel peaksid nägema oma masinas graafikut nagu `../images/sprint-02-dashboard.png`
 
 ---
 
