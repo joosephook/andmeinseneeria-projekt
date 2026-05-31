@@ -37,6 +37,9 @@ Täida see lühike malle iga osaleja kohta enne sprinti lõpetamist.
 
 ## AK (Anti Kasuk)
 - Mis on valmis: 
+  * esialgne töötav andmetoru arhitektuur
+  * andmetoru failide sisselugemisest transformatsioonini
+  * projekti põhjalik dokumentatsioon
 - Järgmised sammud: 
 - Mis takistab: 
 - Kontrollpunkt: link arhitektuurifailile `docs/ari_arhitektuur/05_relatsiooniline_postgresql_andmemudel.md`
