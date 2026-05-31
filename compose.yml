@@ -25,7 +25,7 @@ services:
       ARUANNE_DIR: /data/aruanne
       TARGET_FILENAME: 'LN002 Laenude võlgnevus.xlsx'
     volumes:
-      - ./TMP/aruanne:/data/aruanne:ro
+      - ./aruanne:/data/aruanne:ro
       - ./services/utils.py:/app/utils.py:ro
       - ./services/ingest.py:/app/ingest.py:ro
       - ./services/transform.py:/app/transform.py:ro

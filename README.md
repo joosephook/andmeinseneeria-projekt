@@ -1,88 +1,14 @@
-# andmeinseneeria-projekt
-
-**Docker Quickstart**
-
-- Kopeeri näidiskonfiguratsioon ja uuenda vajadusel `.env` failiga:
-
-```powershell
-cp .env.example .env
-# muuda .env vastavalt oma keskkonnale
-```
-
-- Ehita ja käivita kogu keskkond `docker compose` abil:
-
-```powershell
-docker compose -f docker-compose.example.yml up --build -d
-```
-
-- Vaata jooksvaid logisid (näide: kõik teenused):
-
-```powershell
-docker compose -f docker-compose.example.yml logs -f
-```
-
-- Peata ja eemalda konteinerid ning võrgud:
-
-```powershell
-docker compose -f docker-compose.example.yml down
-```
-
-- Taasta või uuesti ehita üks teenus (nt `ingest`):
-
-```powershell
-docker compose -f docker-compose.example.yml build ingest
-docker compose -f docker-compose.example.yml up -d ingest
-```
-
-- Käivita pipeline käsitsi scheduler konteineris (kasulik testimiseks):
-
-```powershell
-docker compose -f docker-compose.example.yml exec scheduler /app/scripts/run_pipeline.sh
-```
-
-- Käivita ingest või transform otse vastavast konteinerist:
-
-```powershell
-docker compose -f docker-compose.example.yml exec ingest python /app/ingest/ingest_xlsx.py
-docker compose -f docker-compose.example.yml exec transform python /app/transform/transform.py
-```
-
-- Vaata pipeline logi (scheduler log):
-
-```powershell
-docker compose -f docker-compose.example.yml exec scheduler tail -n 200 /var/log/pipeline/run.log
-```
-
-- Kui kasutad PostgreSQL andmebaasi initskripti uuesti, saab DB algseadistuse käivitada nii (sõltuvalt compose konfiguratsioonist võib see juba toimuda automaatselt):
-
-```powershell
-docker compose -f docker-compose.example.yml exec postgres bash -lc "psql -U $POSTGRES_USER -d $POSTGRES_DB -f /docker-entrypoint-initdb.d/init_schema.sql"
-```
-
-- Korduma kippuvad toimingud ja tõrkeotsing:
-    - Kui teenus ei käivitu, vaata selle logisid: `docker compose logs <service>`.
-    - Kui moodifitseerisid `.env`, tee teenuste uuesti ehitus: `docker compose build --no-cache`.
-    - Eemalda mahutid/püsimahud vajadusel: `docker volume ls` ja `docker volume rm <name>`.
-
-    Lisaks vaata täpsemat dokumentatsiooni: [docs/docker.md](docs/docker.md)
-
-    Pre-start wrapperid (soovitatav):
-
-    - Linux/macOS: käivitamiseks ja portikontrolliks:
-
-    ```bash
-    ./scripts/prestart.sh -f docker-compose.example.yml
-    ```
-
-    - Windows PowerShell:
-
-    ```powershell
-    .\scripts\prestart.ps1 -ComposeFile docker-compose.example.yml
-    ```
-
-    Need skriptid kontrollivad esmalt hosti porte ja alles seejärel kutsuvad `docker compose up`.
-
 # Andmeinseneeria projekt — võlgnevuste analüüsi andmetoru
+
+## Docker Quickstart
+1. `cp .env.example .env`
+2. `unzip docs/aruanne.zip`
+    * tulemus: kataloog 'aruanne' koos raportitega on repo root kaustas
+3. `docker compose up`
+    * tulemus: loodud ja valmis pandud andmebaas, andmetoru jookseb automaatselt peale andmebaasi valmisolekut
+4. `docker compose run pipeline`: andmetoru jookseb uuesti
+5. `docker compose exec -it postgres psql -U debtuser -d debtdb`: andmebaasis toimetamiseks
+6. `docker compose down -v --remove-orphans`: eemalda volüümid ja andmetoru käsitsi käivitamisel loodud konteinerid
 
 ## Äriküsimus
 

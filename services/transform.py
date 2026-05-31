@@ -1,9 +1,7 @@
-import os
 import psycopg2
-from datetime import datetime
-import time
 import logging
 from utils import attempt_db_connect
+import traceback
 
 LOGGER = logging.getLogger(__file__)
 
@@ -44,14 +42,14 @@ def upsert_file(cur, file_name, file_checksum):
     cur.execute("SELECT file_key FROM mart.dim_file WHERE file_checksum = %s", (file_checksum,))
     return cur.fetchone()[0]
 
-def process_file(cur, file):
-    file_id, file_name, file_checksum, report_date = file
+def process_file(cur, file_id, file_name, file_checksum, report_date):
     # ensure dim entries
     date_key = ensure_dim_date(cur, report_date)
     file_key = upsert_file(cur, file_name, file_checksum)
 
     cur.execute("SELECT raw_row_id, row_number, registry_code, contract_number, debt_amount, debt_days, raw_payload FROM staging.raw_debt_rows WHERE file_id = %s", (file_id,))
     rows = cur.fetchall()
+    LOGGER.info(f'Processing file {file_name=}')
     for raw_row_id, row_number, registry_code, contract_number, debt_amount, debt_days, raw_payload in rows:
         company_key = upsert_company(cur, registry_code)
         contract_key = upsert_contract(cur, contract_number, company_key) if company_key is not None else None
@@ -61,6 +59,7 @@ def process_file(cur, file):
 
         # ensure contract_key exists; if not, skip row
         if contract_key is None:
+            LOGGER.warning(f'{file_name=}: contract_key is none, skipping fact_debt_snapshot update')
             # write a quality result? for now skip
             continue
 
@@ -75,7 +74,9 @@ def process_file(cur, file):
             (company_key, contract_key, date_key, file_key, snapshot_date, debt_amount if debt_amount is not None else 0, debt_days)
         )
 
+
 def compute_kpis(cur):
+    LOGGER.info('Computing KPIs...')
     cur.execute("""
     INSERT INTO mart.kpi_daily_debt (snapshot_date, total_debt_amount, weighted_avg_debt_days, max_debt_days, debt_contract_count, debt_company_count, calculated_at)
     SELECT
@@ -110,15 +111,15 @@ def do_transform():
             # fetch files marked ingested (or all)
             cur.execute("SELECT file_id, file_name, file_checksum, report_date FROM staging.ingested_files WHERE status = 'ingested' ORDER BY report_date")
             files = cur.fetchall()
-            for f in files:
+            for file_id, file_name, file_checksum, report_date in files:
                 try:
-                    process_file(cur, f)
+                    process_file(cur, file_id, file_name, file_checksum, report_date)
                     # mark file as processed
-                    cur.execute("UPDATE staging.ingested_files SET status = 'processed' WHERE file_id = %s", (f[0],))
+                    cur.execute("UPDATE staging.ingested_files SET status = 'processed' WHERE file_id = %s", (file_id,))
                     conn.commit()
-                except Exception as e:
+                except Exception as error:
                     conn.rollback()
-                    print('Error processing file', f[1], e)
+                    LOGGER.error(f'Error processing {file_name=}: {error=} {traceback.extract_tb()=}')
             # recompute KPIs
             compute_kpis(cur)
             conn.commit()

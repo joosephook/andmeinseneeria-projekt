@@ -1,6 +1,6 @@
 from datetime import datetime
 from datetime import timezone
-import os
+import sys
 
 import logging
 from ingest import do_ingest
@@ -8,7 +8,7 @@ from transform import do_transform
 
 
 logger = logging.getLogger(__file__)
-logging.basicConfig(level=logging.DEBUG, filename='logs/pipeline.log', filemode='a')
+logging.basicConfig(level=logging.DEBUG, handlers=[logging.FileHandler('logs/pipeline.log'),logging.StreamHandler(sys.stdout)] )
 
 start = datetime.now(timezone.utc)
 logger.info(f"Starting pipeline run: {start}")
