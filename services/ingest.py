@@ -176,7 +176,6 @@ def ingest_file(conn, path):
             return
 
     df = pd.read_excel(path, header=3)
-    print(df.columns.tolist())
     registry_col, contract_col, amount_col, days_col = map_columns(df)
     
     validate_required_columns(registry_col, contract_col, amount_col)
