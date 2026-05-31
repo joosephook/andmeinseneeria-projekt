@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16
+    network_mode: host
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -8,16 +9,17 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./sql:/docker-entrypoint-initdb.d
-    ports:
-      - "5432:5432"
+    #ports:
+    #  - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       retries: 10
   pipeline:
     build: ./services/
+    network_mode: host
     environment:
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: localhost
       POSTGRES_PORT: 5432
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -36,5 +38,26 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  api:
+    network_mode: host
+    build: ./services/
+    environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./services/utils.py:/app/utils.py:ro
+      - ./services/api.py:/app/api.py:ro
+      - ./services/templates:/app/templates:ro
+      - ./logs:/app/logs/
+    working_dir: /app 
+    command: flask --app api run --host '0.0.0.0' --port 5000 --debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+    #ports:
+    #  - "5000:5000"
 volumes:
   pgdata:

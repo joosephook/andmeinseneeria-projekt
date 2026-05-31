@@ -96,3 +96,17 @@ CREATE TABLE IF NOT EXISTS mart.kpi_daily_debt (
     debt_company_count INTEGER,
     calculated_at TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE OR REPLACE VIEW mart.v_overdues_summary AS
+SELECT
+fd.snapshot_date,
+SUM(fd.debt_amount) AS company_debtsum_total,
+ROUND(
+SUM(fd.debt_amount * fd.debt_days) / NULLIF(SUM(fd.debt_amount), 0)
+) AS weighted_avg_debtdays,
+COUNT(DISTINCT fd.company_key) AS company_count,
+COUNT(DISTINCT (fd.company_key, fd.contract_key)) AS contract_count
+FROM mart.fact_debt_snapshot fd
+WHERE fd.debt_days IS NOT NULL
+GROUP BY
+snapshot_date;
