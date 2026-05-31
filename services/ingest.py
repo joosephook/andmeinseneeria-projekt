@@ -71,7 +71,8 @@ def ingest_file(conn, path):
     mtime = datetime.fromtimestamp(os.path.getmtime(path))
     report_date = (mtime - timedelta(days=1)).date()
 
-    df = pd.read_excel(path)
+
+    df = pd.read_excel(path, skiprows=3, header=0, dtype_backend='pyarrow')
     registry_col, contract_col, amount_col, days_col = map_columns(df)
 
     with conn.cursor() as cur:
@@ -107,7 +108,7 @@ def ingest_file(conn, path):
         )
         cur.executemany(insert_sql, rows)
         conn.commit()
-        print(f'Inserted {len(rows)} rows for file_id={file_id}')
+        LOGGER.info(f'Inserted {len(rows)} rows for file_id={file_id}')
 
 def do_ingest():
     files = discover_files(ARUANNE_DIR)
