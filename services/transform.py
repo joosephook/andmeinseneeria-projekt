@@ -74,6 +74,58 @@ def process_file(cur, file_id, file_name, file_checksum, report_date):
             (company_key, contract_key, date_key, file_key, snapshot_date, debt_amount if debt_amount is not None else 0, debt_days)
         )
 
+def validate_mart(cur):
+    """Kontrollib mart kihis andmete terviklikkust enne KPI arvutust.
+    Tagastab True kui kõik kontrollid läbivad, False kui mõni ebaõnnestub."""
+    passed = True
+ 
+    # 1. Iga snapshot_date summa martis peab olema positiivne
+    cur.execute("""
+        SELECT snapshot_date, SUM(debt_amount) AS total
+        FROM mart.fact_debt_snapshot
+        GROUP BY snapshot_date
+        ORDER BY snapshot_date
+    """)
+    for snapshot_date, total in cur.fetchall():
+        if total is None or total <= 0:
+            LOGGER.error(f'MART_SUM_POSITIVE FAILED: {snapshot_date} total={total}')
+            passed = False
+        else:
+            LOGGER.info(f'MART_SUM_POSITIVE PASSED: {snapshot_date} total={total}')
+ 
+    # 3. Lepingute arv snapshot_date kohta ei tohi olla 0
+    cur.execute("""
+        SELECT snapshot_date, COUNT(*) AS contract_count
+        FROM mart.fact_debt_snapshot
+        GROUP BY snapshot_date
+        ORDER BY snapshot_date
+    """)
+    for snapshot_date, contract_count in cur.fetchall():
+        if contract_count == 0:
+            LOGGER.error(f'MART_CONTRACT_COUNT FAILED: {snapshot_date} count=0')
+            passed = False
+        else:
+            LOGGER.info(f'MART_CONTRACT_COUNT PASSED: {snapshot_date} count={contract_count}')
+ 
+    # 4. Iga staging report_date peab martis olemas olema
+    cur.execute("""
+        SELECT i.report_date
+        FROM staging.ingested_files i
+        LEFT JOIN mart.fact_debt_snapshot f ON f.snapshot_date = i.report_date
+        WHERE f.snapshot_date IS NULL
+        GROUP BY i.report_date
+    """)
+    missing_dates = cur.fetchall()
+    if missing_dates:
+        for (d,) in missing_dates:
+            LOGGER.error(f'MART_SNAPSHOT_EXISTS FAILED: no mart rows for {d}')
+        passed = False
+    else:
+        LOGGER.info('MART_SNAPSHOT_EXISTS PASSED')
+ 
+    return passed
+ 
+ 
 
 def compute_kpis(cur):
     LOGGER.info('Computing KPIs...')
@@ -121,6 +173,12 @@ def do_transform():
                     conn.rollback()
                     LOGGER.error(f'Error processing {file_name=}: {error=}')
                     LOGGER.error(traceback.format_exception(error))
+
+            # Mart kvaliteedikontroll enne KPI arvutust
+            mart_ok = validate_mart(cur)
+            if not mart_ok:
+                LOGGER.error('Mart validation failed — KPI arvutus katkestatud')
+                return
             # recompute KPIs
             compute_kpis(cur)
             conn.commit()

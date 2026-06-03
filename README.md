@@ -196,3 +196,71 @@ Vajalikud muutujad:
 | Joosep | Git |
 | Sorell | Testid ja analüüs |
 | Anti | Arhitektuur |
+
+
+### Andmekvaliteedi kontroll juhend
+
+**Staging kontrollid**
+
+Käivituvad automaatselt ingest.py-s iga rea kohta. Tulemused salvestatakse quality.quality_results tabelisse.
+
+| Reegel | Mida kontrollib |
+|------|-----------|
+| REGISTRY_CODE | Registrikood on täpselt 8-kohaline number |
+| REGISTRY_CODE_NUMERIC | Registrikood sisaldab ainult numbreid |
+| CONTRACT_NUMBER | Lepingu number on täidetud |
+| DEBT_AMOUNT | Võlasumma on arvuline ja mitte-negatiivne |
+| DEBT_AMOUNT_POSITIVE | Võlasumma on suurem kui 0 |
+| DEBT_DAYS | Võlapäevad on täidetud või tühjad |
+| DEBT_DAYS_RANGE | Võlapäevad on vahemikus 0–3650 |
+
+Kokkuvõte staatuse järgi:
+
+```bash
+docker compose exec postgres psql -U debtuser -d debtdb -c 'SELECT status, COUNT(*) FROM quality.quality_results GROUP BY status;'
+```
+
+Reeglid ja staatused:
+```bash
+docker compose exec postgres psql -U debtuser -d debtdb -c 'SELECT rule_code, status, COUNT(*) FROM quality.quality_results GROUP BY rule_code, status ORDER BY rule_code, status;'
+```
+Ainult vead:
+
+```bash
+docker compose exec postgres psql -U debtuser -d debtdb -c 'SELECT rule_code, message FROM quality.quality_results WHERE status = '"'"'FAILED'"'"' LIMIT 20;'
+```
+
+**Mart kontrollid**
+
+Käivituvad transform.py-s pärast transformatsiooni, enne KPI arvutust. Kui kontroll ebaõnnestub, KPI-d ei uuendata.
+
+| Reegel | Mida kontrollib |
+|------|-----------|
+| MART_SUM_POSITIVE | Iga kuupäeva koguvõlg on positiivne |
+| MART_CONTRACT_COUNT | Iga kuupäeva kohta on vähemalt üks leping |
+| MART_SNAPSHOT_EXISTS | Iga sisseloetud faili kuupäev on martis olemas |
+
+Oodatav tulemus logis:
+```
+INFO: MART_SUM_POSITIVE PASSED: 2025-12-31 total=11512776.47
+INFO: MART_CONTRACT_COUNT PASSED: 2025-12-31 count=433
+INFO: MART_SNAPSHOT_EXISTS PASSED
+```
+
+Mart summad kuupäeva kohta:
+
+```bash
+docker compose exec postgres psql -U debtuser -d debtdb -c 'SELECT snapshot_date, SUM(debt_amount) FROM mart.fact_debt_snapshot GROUP BY snapshot_date ORDER BY snapshot_date;'
+```
+
+Lepingute arv kuupäeva kohta:
+
+```bash
+docker compose exec postgres psql -U debtuser -d debtdb -c 'SELECT snapshot_date, COUNT(*) FROM mart.fact_debt_snapshot GROUP BY snapshot_date ORDER BY snapshot_date;'
+```
+
+Kõik staging kuupäevad martis:
+
+```bash
+docker compose exec postgres psql -U debtuser -d debtdb -c 'SELECT i.report_date, COUNT(f.snapshot_date) FROM staging.ingested_files i LEFT JOIN mart.fact_debt_snapshot f ON f.snapshot_date = i.report_date GROUP BY i.report_date ORDER BY i.report_date;'
+```
