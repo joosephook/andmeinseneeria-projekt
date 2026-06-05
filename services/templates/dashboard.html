@@ -2,7 +2,7 @@
 <html lang="et">
 <head>
     <meta charset="UTF-8">
-    <title>'Projektitöö: "Võlapäevade trendid"'</title>
+    <title>Projektitöö: "Võlapäevade trendid"</title>
 
     <!-- Kui CDN ei tööta sisevõrgus, kasuta lokaalselt: <script src="echarts.min.js"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
@@ -12,7 +12,11 @@
 <body>
 
 <div class="site-header">
-    <img src="/static/logo.png">
+    <div class="top-bar">
+        <img src="/static/logo.png" class="site-logo"> 
+        <div class="site-title">Projektitöö: "Võlapäevade trendid"</div>
+    </div>
+
     <div id="errorBox" class="error"></div>
     <div class="main-menu">
       <a class="tablinks" href="/chart1">Kaalutud keskmine võlapäevade arv</a>
