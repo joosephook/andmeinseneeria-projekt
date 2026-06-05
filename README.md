@@ -25,7 +25,7 @@ Projekt lahendab probleemi, kus ettevõttel puudub automaatne ja ajas võrreldav
 
 Peamine äriküsimus:
 
-> Kuidas muutuvad võlas olevate lepingute võlapäevad ja võlasummad ajas ning millised trendid viitavad maksekäitumise halvenemisele?
+> Kuidas muutuvad võlas olevate lepingute võlapäevad ajas ning millal viitavad trendid maksekäitumise halvenemisele (portfelli tasandil ja laenuklientide tasandil)?
 
 ## Mõõdikud
 
