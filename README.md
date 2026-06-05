@@ -264,3 +264,6 @@ Kõik staging kuupäevad martis:
 ```bash
 docker compose exec postgres psql -U debtuser -d debtdb -c 'SELECT i.report_date, COUNT(f.snapshot_date) FROM staging.ingested_files i LEFT JOIN mart.fact_debt_snapshot f ON f.snapshot_date = i.report_date GROUP BY i.report_date ORDER BY i.report_date;'
 ```
+
+### Ühe testi läbi jooksutamise juhend:
+Test raport: [`docs/test_raport.md`](docs/test_raport.md)
