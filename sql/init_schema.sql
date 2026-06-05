@@ -110,3 +110,52 @@ FROM mart.fact_debt_snapshot fd
 WHERE fd.debt_days IS NOT NULL
 GROUP BY
 snapshot_date;
+
+
+CREATE OR REPLACE VIEW mart.v_overdues_counts
+AS SELECT fd.snapshot_date,
+    count(DISTINCT fd.company_key) AS company_count,
+    count(DISTINCT ROW(fd.company_key, fd.contract_key)) AS contract_count
+   FROM mart.fact_debt_snapshot fd
+  WHERE fd.debt_days IS NOT NULL
+  GROUP BY fd.snapshot_date;
+
+
+CREATE OR REPLACE VIEW mart.v_overdues_last5_dates
+AS SELECT row_number() OVER (ORDER BY snapshot_date) AS col_nr,
+    snapshot_date,
+    to_char(snapshot_date::timestamp with time zone, 'DD.MM.YYYY'::text) AS snapshot_date_label
+   FROM ( SELECT DISTINCT fd.snapshot_date
+           FROM mart.fact_debt_snapshot fd
+          WHERE fd.debt_days IS NOT NULL
+          ORDER BY fd.snapshot_date DESC
+         LIMIT 5) d;
+
+CREATE OR REPLACE VIEW mart.v_overdues_company_pivot_last5
+AS WITH last_dates AS (
+         SELECT d.snapshot_date,
+            row_number() OVER (ORDER BY d.snapshot_date) AS rn
+           FROM ( SELECT DISTINCT fd.snapshot_date
+                   FROM mart.fact_debt_snapshot fd
+                  WHERE fd.debt_days IS NOT NULL
+                  ORDER BY fd.snapshot_date DESC
+                 LIMIT 5) d
+        ), pivot_dates AS (
+         SELECT max(last_dates.snapshot_date) FILTER (WHERE last_dates.rn = 1) AS d1,
+            max(last_dates.snapshot_date) FILTER (WHERE last_dates.rn = 2) AS d2,
+            max(last_dates.snapshot_date) FILTER (WHERE last_dates.rn = 3) AS d3,
+            max(last_dates.snapshot_date) FILTER (WHERE last_dates.rn = 4) AS d4,
+            max(last_dates.snapshot_date) FILTER (WHERE last_dates.rn = 5) AS d5
+           FROM last_dates
+        )
+ SELECT dc.registry_code,
+    round(sum(fd.debt_amount * fd.debt_days::numeric) FILTER (WHERE fd.snapshot_date = p.d1) / NULLIF(sum(fd.debt_amount) FILTER (WHERE fd.snapshot_date = p.d1), 0::numeric))::integer AS value_1,
+    round(sum(fd.debt_amount * fd.debt_days::numeric) FILTER (WHERE fd.snapshot_date = p.d2) / NULLIF(sum(fd.debt_amount) FILTER (WHERE fd.snapshot_date = p.d2), 0::numeric))::integer AS value_2,
+    round(sum(fd.debt_amount * fd.debt_days::numeric) FILTER (WHERE fd.snapshot_date = p.d3) / NULLIF(sum(fd.debt_amount) FILTER (WHERE fd.snapshot_date = p.d3), 0::numeric))::integer AS value_3,
+    round(sum(fd.debt_amount * fd.debt_days::numeric) FILTER (WHERE fd.snapshot_date = p.d4) / NULLIF(sum(fd.debt_amount) FILTER (WHERE fd.snapshot_date = p.d4), 0::numeric))::integer AS value_4,
+    round(sum(fd.debt_amount * fd.debt_days::numeric) FILTER (WHERE fd.snapshot_date = p.d5) / NULLIF(sum(fd.debt_amount) FILTER (WHERE fd.snapshot_date = p.d5), 0::numeric))::integer AS value_5
+   FROM mart.fact_debt_snapshot fd
+   JOIN mart.dim_company dc ON fd.company_key=dc.company_key
+     CROSS JOIN pivot_dates p
+  WHERE fd.debt_days IS NOT NULL
+  GROUP BY dc.registry_code, p.d1, p.d2, p.d3, p.d4, p.d5;

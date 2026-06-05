@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <title>Kaalutud keskmiste võlapäevade aruanne</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="site-header">
+    <img src="/static/logo.png">
+    <div id="errorBox" class="error"></div>
+    <div class="main-menu">
+      <a class="tablinks" href="/chart1">Kaalutud keskmine võlapäevade arv</a>
+      <a class="tablinks" href="/chart2">Võlas ettevõtete ja lepingute arv</a>
+      <a class="tablinks" href="/overdues_report">Kaalutud keskmiste võlapäevade aruanne</a>
+    </div>
+</div>
+
+<main class="page-content">
+    <h1>Kaalutud keskmiste võlapäevade aruanne</h1>
+
+    <div class="report-wrapper">
+        <div class="meta">Kuvatakse kuni 5 viimast aruandekuupäeva.</div>
+
+        <div id="status">Laen andmeid...</div>
+
+        <table id="reportTable" style="display:none;">
+            <thead>
+                <tr id="headerRow"></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+function escapeHtml(value) {
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+fetch("/overdues_data")
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("Andmete laadimine ebaõnnestus.");
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.message || data.error);
+        }
+
+        const dates = data.dates || [];
+        const rows = data.rows || [];
+
+        const status = document.getElementById("status");
+        const table = document.getElementById("reportTable");
+        const headerRow = document.getElementById("headerRow");
+        const tableBody = document.getElementById("tableBody");
+
+        headerRow.innerHTML = "";
+        tableBody.innerHTML = "";
+
+        let headerHtml = "<th>Registrikood</th>";
+
+        dates.forEach(date => {
+            headerHtml += "<th>" + escapeHtml(date.report_date_label) + "</th>";
+        });
+
+        headerRow.innerHTML = headerHtml;
+
+        if (rows.length === 0) {
+            tableBody.innerHTML =
+                "<tr><td class=\"empty\" colspan=\"" + (dates.length + 1) + "\">Andmeid ei leitud.</td></tr>";
+        } else {
+            rows.forEach(row => {
+                let rowHtml = "<tr>";
+                rowHtml += "<td>" + escapeHtml(row.company_code) + "</td>";
+
+                dates.forEach(date => {
+                    const colNr = parseInt(date.col_nr, 10);
+                    const key = "value_" + colNr;
+                    const value = row[key];
+
+                    if (value === null || value === undefined || value === "") {
+                        rowHtml += "<td class=\"empty\">-</td>";
+                    } else {
+                        rowHtml += "<td>" + escapeHtml(value) + "</td>";
+                    }
+                });
+
+                rowHtml += "</tr>";
+                tableBody.innerHTML += rowHtml;
+            });
+        }
+
+        status.style.display = "none";
+        table.style.display = "table";
+    })
+    .catch(error => {
+        const status = document.getElementById("status");
+        status.className = "error";
+        status.textContent = error.message;
+    });
+</script>
+
+</body>
+</html>

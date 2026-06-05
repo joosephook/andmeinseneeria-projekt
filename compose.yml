@@ -51,6 +51,7 @@ services:
       - ./services/utils.py:/app/utils.py:ro
       - ./services/api.py:/app/api.py:ro
       - ./services/templates:/app/templates:ro
+      - ./services/static:/app/static:ro
       - ./logs:/app/logs/
     working_dir: /app 
     command: flask --app api run --host '0.0.0.0' --port 5000 --debug
