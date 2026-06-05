@@ -30,10 +30,9 @@ Peamine äriküsimus:
 ## Mõõdikud
 
 1. Kaalutud keskmine võlapäevade arv: `SUM(võlapäevad * võlasumma) / SUM(võlasumma)`
-2. Maksimaalne võlapäevade arv: `MAX(võlapäevad)`
-3. Võlas olevate lepingute arv: `COUNT(leping_id) WHERE võlapäevad > 0`
-4. Võlasumma ajas: `SUM(võlasumma) GROUP BY raporti_kuupäev`
-5. Ettevõtete arv võlas: `COUNT(DISTINCT registrikood) WHERE võlasumma > 0`
+2. Võlas olevate lepingute arv: `COUNT(leping_id) WHERE võlapäevad > 0`
+3. Ettevõtete arv võlas: `COUNT(DISTINCT registrikood) WHERE võlasumma > 0`
+4. Kaalutud keskmine võlapäevade arv ettevõtete kaupa (aruanne)
 
 ## Arhitektuur
 
