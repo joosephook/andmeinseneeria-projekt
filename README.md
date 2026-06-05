@@ -83,7 +83,7 @@ Sisendfaili peamised veerud:
 | Transformatsioon | SQL, Python või dbt-stiilis SQL |
 | Orkestreerimine | Cron Docker konteineris |
 | Dashboard API | Node.js + Express või muu lihtne HTTP API |
-| Dashboard | HTML, CSS, Vanilla JavaScript, Chart.js |
+| Dashboard | HTML, CSS, Vanilla JavaScript, Apache Echart |
 | Käitus | Docker Compose mikro-teenused |
 
 ## Andmevoog lühidalt
