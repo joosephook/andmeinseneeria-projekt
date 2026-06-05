@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <title>Võlas ettevõtete ja lepingute arv</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Kui CDN ei tööta sisevõrgus, kasuta lokaalselt: <script src="echarts.min.js"></script> -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+</head>
+<body>
+
+<div id="siteHeader"></div>
+
+<main class="page-content">
+    <h1>Võlas ettevõtete ja lepingute arv</h1>
+
+    <div id="errorBox" class="error"></div>
+
+    <div class="charts-grid">
+        <div class="chart-box">
+            <div id="companyChart" class="chart"></div>
+        </div>
+
+        <div class="chart-box">
+            <div id="contractChart" class="chart"></div>
+        </div>
+    </div>
+</main>
+
+<script>
+    fetch('menu.php?page=' + encodeURIComponent(window.location.pathname.split('/').pop()), { cache: 'no-store' })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Menüü laadimine ebaõnnestus. HTTP staatus: ' + response.status);
+            }
+            return response.text();
+        })
+        .then(html => {
+            document.getElementById('siteHeader').innerHTML = html;
+        })
+        .catch(error => {
+            console.error(error);
+        });
+</script>
+
+<script>
+    const companyChartElement = document.getElementById('companyChart');
+    const contractChartElement = document.getElementById('contractChart');
+
+    const companyChart = echarts.init(companyChartElement);
+    const contractChart = echarts.init(contractChartElement);
+
+    fetch('api_overdues_counts.php')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('API päring ebaõnnestus. HTTP staatus: ' + response.status);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const dates = data.map(row => row.report_date);
+            const companyCounts = data.map(row => row.company_count);
+            const contractCounts = data.map(row => row.contract_count);
+
+            const commonTooltip = {
+                trigger: 'axis',
+                valueFormatter: function (value) {
+                    if (value === null || value === undefined) {
+                        return '';
+                    }
+                    return Number(value).toLocaleString('et-EE');
+                }
+            };
+
+            const commonGrid = {
+                left: 70,
+                right: 30,
+                top: 80,
+                bottom: 90
+            };
+
+            const commonDataZoom = [
+                {
+                    type: 'slider',
+                    start: 0,
+                    end: 100
+                },
+                {
+                    type: 'inside'
+                }
+            ];
+
+            const commonXAxis = {
+                type: 'category',
+                data: dates,
+                name: 'Kuupäev',
+                nameLocation: 'middle',
+                nameGap: 65,
+                nameTextStyle: {
+                    fontSize: 16,
+                    fontWeight: 'bold'
+                },
+                axisLabel: {
+                    rotate: 45,
+                    fontSize: 16
+                }
+            };
+
+            companyChart.setOption({
+                title: {
+                    text: 'Võlas ettevõtete arv ajas',
+                    left: 'center'
+                },
+                tooltip: commonTooltip,
+                grid: commonGrid,
+                dataZoom: commonDataZoom,
+                xAxis: commonXAxis,
+                yAxis: {
+                    type: 'value',
+                    name: 'Ettevõtete arv',
+                    min: 0,
+                    nameGap: 45,
+                    nameTextStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    },
+                    axisLabel: {
+                        fontSize: 16,
+                        formatter: '{value}'
+                    }
+                },
+                series: [
+                    {
+                        name: 'Võlas ettevõtete arv',
+                        type: 'line',
+                        data: companyCounts,
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 7
+                    }
+                ]
+            });
+
+            contractChart.setOption({
+                title: {
+                    text: 'Võlas lepingute arv ajas',
+                    left: 'center'
+                },
+                tooltip: commonTooltip,
+                grid: commonGrid,
+                dataZoom: commonDataZoom,
+                xAxis: commonXAxis,
+                yAxis: {
+                    type: 'value',
+                    name: 'Lepingute arv',
+                    min: 0,
+                    nameGap: 45,
+                    nameTextStyle: {
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    },
+                    axisLabel: {
+                        fontSize: 16,
+                        formatter: '{value}'
+                    }
+                },
+                series: [
+                    {
+                        name: 'Võlas lepingute arv',
+                        type: 'line',
+                        data: contractCounts,
+                        smooth: true,
+                        symbol: 'circle',
+                        symbolSize: 7
+                    }
+                ]
+            });
+        })
+        .catch(error => {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.style.display = 'block';
+            errorBox.textContent = 'Andmete laadimine ebaõnnestus: ' + error.message;
+            console.error(error);
+        });
+
+    window.addEventListener('resize', function () {
+        companyChart.resize();
+        contractChart.resize();
+    });
+</script>
+
+</body>
+</html>
