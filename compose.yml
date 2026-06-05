@@ -15,7 +15,10 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       retries: 10
-  pipeline:
+  trigger_pipeline:
+    restart: never
+    profiles:
+      - do_not_start
     build: ./services/
     network_mode: host
     environment:
@@ -35,6 +38,30 @@ services:
       - ./logs:/app/logs/
     working_dir: /app 
     command: python run_pipeline.py
+    depends_on:
+      postgres:
+        condition: service_healthy
+  pipeline:
+    build: ./services/
+    network_mode: host
+    environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      ARUANNE_DIR: /data/aruanne
+      TARGET_FILENAME: 'LN002 Laenude võlgnevus.xlsx'
+    volumes:
+      - ./aruanne:/data/aruanne:ro
+      - ./services/utils.py:/app/utils.py:ro
+      - ./services/ingest.py:/app/ingest.py:ro
+      - ./services/transform.py:/app/transform.py:ro
+      - ./services/run_pipeline.py:/app/run_pipeline.py:ro
+      - ./services/scheduler.py:/app/scheduler.py:ro
+      - ./logs:/app/logs/
+    working_dir: /app 
+    command: python scheduler.py
     depends_on:
       postgres:
         condition: service_healthy

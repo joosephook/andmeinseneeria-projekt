@@ -244,12 +244,12 @@ def do_ingest():
     files = discover_files(ARUANNE_DIR)
     if not files:
         LOGGER.info(f'No files found in {ARUANNE_DIR}')
-        return
+        return False
 
     result = attempt_db_connect(LOGGER)
     if result is None or isinstance(result, psycopg2.OperationalError):
         LOGGER.error(result)
-        return
+        return False
     conn = result
 
     truncate(conn)
@@ -259,6 +259,7 @@ def do_ingest():
             ingest_file(conn, file)
         except Exception as error:
             LOGGER.error(f"Error ingesting {file}: {error}")
+            return False
 
     conn.close()
     return True
