@@ -189,12 +189,12 @@ Vajalikud muutujad:
 
 ## Meeskond
 
-| Nimi | Roll Sprint 1|
+| Nimi | Roll|
 |---|---|
-| Jaan | Andmed |
-| Joosep | Git |
+| Jaan | Andmed, Äriprobleem, Dashboadr |
+| Joosep | Git, Dokerid |
 | Sorell | Testid ja analüüs |
-| Anti | Arhitektuur |
+| Anti | Arhitektuur, Video |
 
 
 ### Andmekvaliteedi kontroll juhend
