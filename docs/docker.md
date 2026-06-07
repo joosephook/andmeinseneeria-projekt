@@ -12,7 +12,7 @@ cp .env.example .env
 ## Ehita ja käivita
 
 ```powershell
-docker compose -f docker-compose.example.yml up --build -d
+docker compose up --build
 ```
 
 ## Logid ja haldus
@@ -20,70 +20,94 @@ docker compose -f docker-compose.example.yml up --build -d
 Vaata logisid (kõik teenused):
 
 ```powershell
-docker compose -f docker-compose.example.yml logs -f
+docker compose logs -f
 ```
 
 Peata ja eemalda konteinerid ning võrgud:
 
 ```powershell
-docker compose -f docker-compose.example.yml down
+docker compose down
+```
+
+Peata ja eemalda konteinerid koos püsimahtudega:
+
+```powershell
+docker compose down -v --remove-orphans
 ```
 
 Ehitamine ja taaskäivitamine ühele teenusele:
 
 ```powershell
-docker compose -f docker-compose.example.yml build ingest
-docker compose -f docker-compose.example.yml up -d ingest
+docker compose build api
+docker compose up api
 ```
 
-## Pipeline käsitsi käivitamine (scheduler)
+## Pipeline käsitsi käivitamine
+
+Automaatselt käivitub pipeline `pipeline` teenuses scheduleriga. Ühekordseks käsitsi käivitamiseks kasuta `trigger_pipeline` teenust:
 
 ```powershell
-docker compose -f docker-compose.example.yml exec scheduler /app/scripts/run_pipeline.sh
+
 ```
 
 ## Portide konflikti kontroll — oluline enne `up`
 
-Et vältida olukorda, kus lokaalsete teenuste (nt PostgreSQL, HTTP/HTTPS) portid on juba kasutuses ja põhjustavad konflikte Dockeri käivitamisel, käivita kontroll enne `docker compose up`.
+Praegune `compose.yml` kasutab `network_mode: host`, seega konteinerid kasutavad otse hosti porte. Enne `docker compose up` käivitamist tasub kontrollida, et vajalikud pordid ei oleks juba lokaalse PostgreSQL-i, Flaski või mõne muu teenuse poolt kasutuses.
 
-Projekt sisaldab skripti, mis kontrollib hosti pordikasutust ja tagastab mittetühise väljundi (exit code != 0) kui leidub hõivatud porte.
+Projektis ei ole enam eraldi portide kontrolli skripte. Need skriptid olid varasemas versioonis olemas, kuid eemaldati kasutuseta failidena. Kontroll tuleb teha käsitsi või operatsioonisüsteemi enda tööriistadega.
 
+Selle projekti puhul on olulised pordid:
 
-Näited:
-
-```bash
-# Parim praktika: kontrolli compose faili hosti porte (Linux/macOS)
-python scripts/check_free_ports.py --compose-file docker-compose.example.yml
-
-# või kontrolli konkreetseid porte
-python scripts/check_free_ports.py --ports 5432,80,443
-```
-
-Windows PowerShell wrapper:
-
-```powershell
-.\scripts\check_ports.ps1 -ComposeFile docker-compose.example.yml
-```
-
-Kui skript leiab hõivatud pordi, annab see nimekirja kasutajatest portidest ja väljub koodiga `1`. See võimaldab enne `docker compose up` lisada lihtsa kontrolli skripti või CI-sammuna.
-
-### Pre-start wrapperid
-
-Projekt sisaldab mugavaid pre-start skripte, mis käivitavad portikontrolli ja ainult siis sooritavad `docker compose up`.
-
-Linux / macOS (bash):
-
-```bash
-./scripts/prestart.sh -f docker-compose.example.yml
-```
+| Port | Kasutus |
+|---|---|
+| `5432` | PostgreSQL |
+| `5000` | Flask dashboard API ja veebiliides |
 
 Windows PowerShell:
 
 ```powershell
-.\scripts\prestart.ps1 -ComposeFile docker-compose.example.yml
+Get-NetTCPConnection -LocalPort 5432,5000 -ErrorAction SilentlyContinue
 ```
 
-Need skriptid tagavad, et hostis olevad teenused ei blokeeri Compose poolt määratud hosti porte. Kui port on hõivatud, siis skript abortib ja väljastab kasutatavad portid.
+Kui käsk tagastab ridu, on vähemalt üks port juba kasutuses. Sel juhul peata vastav lokaalne teenus või muuda Compose/API konfiguratsiooni.
+
+Alternatiivne kontroll Windowsis:
+
+```powershell
+netstat -ano | findstr ":5432"
+netstat -ano | findstr ":5000"
+```
+
+Linux/macOS:
+
+```bash
+lsof -i :5432
+lsof -i :5000
+```
+
+Kui port on vaba, ei väljasta need käsud tavaliselt midagi.
+
+### Pre-start wrapperid
+
+Projektis ei ole praegu `scripts/prestart.sh` ega `scripts/prestart.ps1` faile. Käivitus toimub otse Compose käsuga:
+
+```powershell
+docker compose up --build
+```
+
+Pipeline'i saab käsitsi uuesti käivitada:
+
+```powershell
+docker compose run --rm trigger_pipeline
+```
+
+Kui portide konflikt tekib, on tüüpilised sümptomid:
+
+- PostgreSQL konteiner ei saa käivituda või healthcheck ebaõnnestub.
+- Flask API ei avane aadressil `http://localhost:5000/dashboard`.
+- Logides on teade stiilis `address already in use`.
+
+Sellisel juhul kontrolli pordid üle, peata konflikti põhjustav protsess ning käivita Compose uuesti.
 
 ## Korduma kippuvad juhud
 
@@ -96,5 +120,3 @@ docker volume rm <name>
 ```
 
 ---
-
-Kui soovid, lisan `pre-start` skripti, mis käivitab `check_free_ports.py` automaatselt enne `docker compose up` ja abortib, kui leidub konflikte.

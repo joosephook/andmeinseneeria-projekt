@@ -1,4 +1,5 @@
 TMP/
+aruanne/
 .env
 *.log
 __pycache__
