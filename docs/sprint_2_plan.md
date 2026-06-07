@@ -20,20 +20,18 @@ Peamised riskid / puudujäägid (mida tuleb lõpetada)
 
 Osalejate põhijagunemine (uuendatud)
 
-- AK — Arhitekt (tegi arhitektuuri)
-  - Vastutab arhitektuuridokumentide eest ja toetab integreerimist (konteinerite mountid, DB initskriptide paigutus).
+- JS / Jaan — Andmed, äriprobleem, dashboard ja KPI-de äriline selgitus
+  - Toob ja kinnitab näidisandmed, kirjeldab KPI ärireeglid ning valideerib dashboardi ärilise õigsuse.
 
-- JH — DevOps / Docker & käivitused
-  - Hoolitseb `docker-compose` ja `prestart` skriptide praktilise käivitamise eest (portikontroll, volüümid, õigused).
-  - Käivitab lokaalse E2E testi ja fikseerib konteineri- või võrgukonfliktid.
+- JH / Joosep — Git, Docker/Compose, pipeline/API käivitus ja tehniline demo
+  - Hoolitseb Compose käivituse, pipeline/API töökindluse, lokaalse E2E testi ja tehnilise demo eest.
 
-- JS — Andmeomanik / lõppkasutaja
-  - Toob ja kinnitab näidisandmed `TMP/aruanne/` (normaalsete ja edge-case failid).
-  - Kirjeldab KPI ärireeglid ja valideerib ärilise õigsuse.
-
-- ST — Testimine & andmepuhastus
+- ST / Sorell — Testid, andmekvaliteedi kontrollid ja testiraport
   - Koostab ja viib läbi testid andmete kvaliteedi, transformatsiooni ja KPI õiguse kontrolliks.
-  - Vastutab `quality.quality_results` reeglite ja testskriptide eest.
+  - Vastutab `quality.quality_results` reeglite, testiraporti ja testimise juhendi eest.
+
+- AK / Anti — Arhitektuur, dokumentatsioon ja demo video salvestamine
+  - Vastutab arhitektuuridokumentide, dokumentatsiooni terviklikkuse ja valmis rakenduse demo video salvestamise eest.
 
 Konkreetne ülesannete jaotus (prioriteetsus koos eeldatava töömahu ja omanikuga)
 

@@ -6,31 +6,31 @@ Dokumendi eesmärk on kirjeldada Docker Compose põhist evituse ülesehitust.
 
 ## Ulatus
 
-Ulatus hõlmab teenuseid `postgres`, `ingest`, `quality`, `transform`, `scheduler` ja `dashboard`, volume'id `postgres_data`, `sap_files` ja `pipeline_logs` ning võrku `debt_pipeline_net`.
+Ulatus hõlmab teenuseid `postgres`, `pipeline`, `trigger_pipeline` ja `api`, volume'it `pgdata`, bind mount'e `./aruanne`, `./services`, `./sql`, `./logs` ning host-võrgu kasutust.
 
 ## Põhikirjeldus
 
-Lahendus töötab Docker Compose keskkonnas. PostgreSQL teenus hoiab andmebaasi. Ingest, quality ja transform teenused on eraldi käivitatavad mikro-teenused. Scheduler konteiner käivitab töövoo croniga. Dashboard konteiner teenindab API-t ja veebiliidest või koosneb ühest Node.js teenusest, mis serveerib staatilist frontend'i.
+Lahendus töötab Docker Compose keskkonnas. PostgreSQL teenus hoiab andmebaasi ja käivitab skeemi initsialiseerimise `sql/init_schema.sql` failist. `pipeline` konteiner käivitab `scheduler.py`, mis omakorda käivitab ingest ja transform sammud. `trigger_pipeline` on sama töövoo käsitsi käivitatav variant. `api` konteiner käivitab Flask rakenduse, mis serveerib dashboardi HTML vaateid, staatilisi faile ja JSON otspunkte.
 
 ## Teenused
 
 | Teenus | Roll |
 |---|---|
 | `postgres` | PostgreSQL andmebaas skeemidega `staging`, `quality`, `mart`, `logs`. |
-| `ingest` | Loeb uued SAP XLSX failid ja täidab staging kihi. |
-| `quality` | Käivitab kvaliteedikontrollid ja salvestab tulemused. |
-| `transform` | Arvutab KPI-d ja uuendab mart kihi. |
-| `scheduler` | Käivitab töövoo cron ajakava järgi. |
-| `dashboard` | Kuvab võlgnevuste dashboardi ja API. |
+| `pipeline` | Käivitab scheduleriga automaatse ingest/quality/transform töövoo. |
+| `trigger_pipeline` | Käivitab sama töövoo käsitsi Compose profiili kaudu. |
+| `api` | Kuvab võlgnevuste dashboardi ja teenindab JSON API-t. |
 
 ## Volume'id Ja Võrk
 
 | Objekt | Kirjeldus |
 |---|---|
-| `postgres_data` | PostgreSQL püsiv andmemaht. |
-| `sap_files` | SAP XLSX failide jagatud maht. |
-| `pipeline_logs` | Pipeline töölogide maht. |
-| `debt_pipeline_net` | Sisemine Docker Compose võrk. |
+| `pgdata` | PostgreSQL püsiv andmemaht. |
+| `./aruanne` | SAP XLSX failide sisendkaust, konteineris `/data/aruanne`. |
+| `./sql` | Andmebaasi initsialiseerimise SQL skriptid. |
+| `./services` | Python teenuste, mallide ja staatiliste failide bind mount'id. |
+| `./logs` | Pipeline ja API logifailide kaust. |
+| `network_mode: host` | Teenused kasutavad hosti võrku ja ühenduvad andmebaasi `localhost` kaudu. |
 
 ## Keskkonnamuutujad
 
@@ -41,38 +41,41 @@ Lahendus töötab Docker Compose keskkonnas. PostgreSQL teenus hoiab andmebaasi.
 | `POSTGRES_DB` | Andmebaasi nimi. |
 | `POSTGRES_USER` | Andmebaasi kasutaja. |
 | `POSTGRES_PASSWORD` | Andmebaasi parool. |
-| `SAP_FILES_DIR` | Kataloog, kust ingest teenus faile loeb. |
-| `LOG_DIR` | Kataloog pipeline logide jaoks. |
+| `ARUANNE_DIR` | Kataloog, kust ingest teenus faile loeb; vaikimisi `/data/aruanne`. |
+| `TARGET_FILENAME` | Otsitava SAP XLSX faili nimi; praegu `LN002 Laenude võlgnevus.xlsx`. |
 
 ## Diagramm
 
 ```mermaid
 flowchart TB
     subgraph DockerHost[Docker host]
-        subgraph Net[debt_pipeline_net]
+        subgraph HostNet[host network]
             Postgres[(postgres)]
-            Ingest[ingest container]
-            Quality[quality container]
-            Transform[transform container]
-            Scheduler[scheduler cron container]
-            Dashboard[dashboard container]
+            Pipeline[pipeline scheduler]
+            Trigger[trigger_pipeline]
+            Api[Flask api]
         end
 
-        SapFiles[(sap_files volume)]
-        PgData[(postgres_data volume)]
-        Logs[(pipeline_logs volume)]
+        Aruanne[(./aruanne)]
+        PgData[(pgdata)]
+        Logs[(./logs)]
+        Sql[(./sql)]
+        Services[(./services)]
     end
 
-    SapFiles --> Ingest
-    Ingest --> Postgres
-    Quality --> Postgres
-    Transform --> Postgres
-    Dashboard --> Postgres
-    Scheduler --> Ingest
-    Scheduler --> Quality
-    Scheduler --> Transform
+    Aruanne --> Pipeline
+    Aruanne --> Trigger
+    Pipeline --> Postgres
+    Trigger --> Postgres
+    Api --> Postgres
     Postgres --> PgData
-    Scheduler --> Logs
+    Sql --> Postgres
+    Services --> Pipeline
+    Services --> Trigger
+    Services --> Api
+    Pipeline --> Logs
+    Trigger --> Logs
+    Api --> Logs
 ```
 
 ## Docker Compose Struktuuri Näide
@@ -82,39 +85,26 @@ services:
   postgres:
     image: postgres:16
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
 
-  ingest:
-    build: ./services/ingest
+  pipeline:
+    build: ./services/
+    network_mode: host
     volumes:
-      - sap_files:/data/sap
+      - ./aruanne:/data/aruanne:ro
+      - ./logs:/app/logs/
+    command: python scheduler.py
 
-  quality:
-    build: ./services/quality
-
-  transform:
-    build: ./services/transform
-
-  scheduler:
-    build: ./services/scheduler
-    volumes:
-      - sap_files:/data/sap
-      - pipeline_logs:/var/log/pipeline
-
-  dashboard:
-    build: ./services/dashboard
-    ports:
-      - "3000:3000"
+  api:
+    build: ./services/
+    network_mode: host
+    command: flask --app api run --host '0.0.0.0' --port 5000 --debug
 ```
 
-Täielikku Compose faili ei looda selles dokumendis, sest teenuste täpne kaustastruktuur ja käivituskäsud tuleb kinnitada rakenduse loomisel.
+Täielik Compose fail asub projekti juures failis `compose.yml`.
 
 ## Tehnilised Märkused
 
-Scheduler peab käivitama töövoo järjekorras: uue faili kontroll, ingest, kvaliteedikontroll, transformatsioon, mart kihi uuendus ja logimine. Näidis cron rida:
-
-```cron
-0 2 * * * /app/scripts/run_pipeline.sh
-```
+Scheduler peab käivitama töövoo järjekorras: faili otsing, ingest, rea kvaliteedikontroll, transformatsioon, mart kihi kontroll, KPI arvutus ja logimine.
 
 

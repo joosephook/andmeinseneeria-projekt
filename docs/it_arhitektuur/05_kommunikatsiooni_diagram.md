@@ -6,11 +6,11 @@ Dokumendi eesmärk on kirjeldada süsteemide ja teenuste vaheline suhtlus.
 
 ## Ulatus
 
-Ulatus hõlmab SAP-i, failikataloogi, schedulerit, ingest teenust, quality teenust, transform teenust, PostgreSQL-i, dashboard API-t, JS frontend'i ja logimist.
+Ulatus hõlmab SAP-i, failikataloogi, schedulerit või käsitsi pipeline triggerit, ingest/quality/transform loogikat, PostgreSQL-i, Flask dashboard API-t, JS frontend'i ja logimist.
 
 ## Põhikirjeldus
 
-SAP kirjutab XLSX faili jagatud kataloogi. Scheduler käivitab ingest, quality ja transform teenused. Ingest loeb faili ning kirjutab toorandmed PostgreSQL-i. Quality kontrollib andmeid ja salvestab tulemused. Transform ehitab mart kihi. Dashboard API loeb mart kihist KPI andmed JSON kujul ja frontend kuvab graafikud. Kõik teenused kirjutavad staatuse logidesse. Vea korral salvestatakse staatus ja võimalusel käivitatakse retry.
+SAP XLSX fail paikneb jagatud kataloogis. Scheduler või `trigger_pipeline` käivitab Python töövoo. Ingest loeb faili, kirjutab toorandmed PostgreSQL-i ning salvestab rea kvaliteeditulemused. Transform ehitab mart kihi, teeb mart kontrollid ja arvutab KPI-d. Flask API loeb mart kihist KPI andmed JSON kujul ja frontend kuvab graafikud ning raporti. Teenused kirjutavad staatuse logidesse. Vea korral salvestatakse staatus ning töövoog katkestab riskantsed hilisemad sammud.
 
 ## Diagramm
 
@@ -18,16 +18,13 @@ SAP kirjutab XLSX faili jagatud kataloogi. Scheduler käivitab ingest, quality j
 flowchart LR
     SAP[SAP] -->|XLSX fail| FS[Failikataloog]
     FS -->|loe fail| INGEST[Ingest]
-    SCHED[Scheduler] -->|käivita| INGEST
-    SCHED -->|käivita| QUALITY[Quality]
+    SCHED[Scheduler or trigger_pipeline] -->|käivita| INGEST
     SCHED -->|käivita| TRANSFORM[Transform]
-    INGEST -->|raw rows| DB[(PostgreSQL)]
-    QUALITY -->|quality results| DB
+    INGEST -->|raw rows and quality results| DB[(PostgreSQL)]
     TRANSFORM -->|mart tables| DB
-    DB -->|KPI JSON| API[Dashboard API]
+    DB -->|mart views| API[Flask Dashboard API]
     API -->|HTTP| UI[JS Frontend]
     INGEST --> LOGS[Logs]
-    QUALITY --> LOGS
     TRANSFORM --> LOGS
     SCHED --> LOGS
 ```
@@ -37,15 +34,13 @@ flowchart LR
 | Saatja | Vastuvõtja | Sisu | Protokoll või mehhanism |
 |---|---|---|---|
 | SAP | Failikataloog | XLSX fail | Failisüsteem |
-| Scheduler | Ingest | Käivituskäsk | Shell või container command |
-| Scheduler | Quality | Käivituskäsk | Shell või container command |
-| Scheduler | Transform | Käivituskäsk | Shell või container command |
-| Ingest | PostgreSQL | Toorread ja faili metaandmed | PostgreSQL ühendus |
-| Quality | PostgreSQL | Kvaliteeditulemused | PostgreSQL ühendus |
-| Transform | PostgreSQL | Mart tabelid ja KPI-d | PostgreSQL ühendus |
+| Scheduler või trigger_pipeline | Ingest | Käivituskäsk | Python mooduli käivitus konteineris |
+| Scheduler või trigger_pipeline | Transform | Käivituskäsk | Python mooduli käivitus konteineris |
+| Ingest | PostgreSQL | Toorread, faili metaandmed ja kvaliteeditulemused | PostgreSQL ühendus |
+| Transform | PostgreSQL | Mart tabelid, mart kontrollid ja KPI-d | PostgreSQL ühendus |
 | Dashboard API | PostgreSQL | KPI päringud | PostgreSQL ühendus |
-| Frontend | Dashboard API | JSON päringud | HTTP |
-| Teenused | Logs | Staatused ja vead | PostgreSQL või logifail |
+| Frontend | Dashboard API | JSON päringud `/overdues_summary`, `/overdues_counts`, `/overdues_data` | HTTP |
+| Teenused | Logs | Staatused ja vead | Logifail ning arhitektuuriliselt `logs.pipeline_runs` |
 
 ## Tehnilised Märkused
 

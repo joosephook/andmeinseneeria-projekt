@@ -10,7 +10,7 @@ Ulatus hõlmab päevaseid võlgnevuste snapshot'e, KPI arvutusi, kvaliteedivigad
 
 ## Põhikirjeldus
 
-Analüütiline mudel tugineb tabelile `mart.fact_debt_snapshot`, mille granulaarsus on üks rida ühe lepingu ühe raportikuupäeva kohta. Dashboard loeb otse `mart.kpi_daily_debt` tabelist või selle aluseks olevatest vaadetest. Täiendavad vaated võivad koondada kvaliteedivigu failiti ja kuvada viimase faili laadimise staatust.
+Analüütiline mudel tugineb tabelile `mart.fact_debt_snapshot`, mille granulaarsus on üks rida ühe lepingu ühe raportikuupäeva kohta. Dashboard loeb eelarvutatud KPI tabelit ja mart vaateid, et API ei peaks kasutaja päringu ajal transformatsiooniloogikat tegema. Täiendavad vaated võivad koondada kvaliteedivigu failiti ja kuvada viimase faili laadimise staatust.
 
 ## Analüütilised Väljundid
 
@@ -23,6 +23,9 @@ Analüütiline mudel tugineb tabelile `mart.fact_debt_snapshot`, mille granulaar
 | Ettevõtete arv võlas | `mart.fact_debt_snapshot`, `mart.dim_company` | Mõjutatud klientide arv. |
 | Kvaliteedivigade arv failiti | `quality.quality_results` | Laadimiskvaliteedi jälgimine. |
 | Viimase faili laadimise staatus | `staging.ingested_files`, `logs.pipeline_runs` | Operatiivne kontroll dashboardil. |
+| Võlgnevuste koondtrend | `mart.v_overdues_summary` | Kaalutud keskmise võlapäevade graafik. |
+| Võlas ettevõtete ja lepingute arv | `mart.v_overdues_counts` | Võlas olevate osapoolte mahu graafik. |
+| Viimase 5 kuupäeva ettevõttepõhine raport | `mart.v_overdues_last5_dates`, `mart.v_overdues_company_pivot_last5` | Raportivaade, mis näitab ettevõtete võlapäevade muutust viimastel snapshotidel. |
 
 ## Näidis SQL
 
@@ -63,6 +66,6 @@ Tulevase ML komponendi jaoks saab lisada tunnuseid nagu viimase 7 või 30 päeva
 
 ## Tehnilised Märkused
 
-KPI-de arvutus võib toimuda transform teenuses SQL-i abil. Dashboard API peaks lugema eelarvutatud KPI tabelit, et veebivaade oleks kiire ja stabiilne.
+KPI-de arvutus toimub transform teenuses SQL-i abil. Dashboard API loeb eelarvutatud KPI tabelit ja mart vaateid, et veebivaade oleks kiire ja stabiilne.
 
 

@@ -28,7 +28,9 @@ Peamised kasutajad on analüütik, andmeomanik, juht, arendaja, arhitekt ja süs
 
 ## Dashboardi Kasutus
 
-Dashboard kuvab võlapäevade kaalutud keskmise, maksimaalse võlapäevade arvu, võlas olevate lepingute arvu, võlasumma trendi, võlas ettevõtete arvu ning viimase faili laadimise staatuse. Analüütik kasutab dashboardi trendide jälgimiseks, juht koondvaateks ja andmeomanik kvaliteediprobleemide märkamiseks.
+Dashboard kuvab võlapäevade kaalutud keskmise ajas, võlas olevate ettevõtete ja lepingute arvu ning viimase viie raportikuupäeva ettevõttepõhise võlapäevade koondi. Analüütik kasutab dashboardi trendide jälgimiseks, juht koondvaateks ja andmeomanik kvaliteediprobleemide märkamiseks.
+
+Praegune teostus pakub eraldi vaateid üldisele dashboardile, kaalutud keskmise graafikule, võlas olevate ettevõtete/lepingute arvu graafikule ja võlgnevuste raportile. Andmed tulevad mart kihi vaadetest `mart.v_overdues_summary`, `mart.v_overdues_counts`, `mart.v_overdues_last5_dates` ja `mart.v_overdues_company_pivot_last5`.
 
 ## Ärivaate Diagramm
 
@@ -47,6 +49,6 @@ Arhitektuur peab võimaldama lisada ML riskiskoori, maksekäitumise trendiprogno
 
 ## Tehnilised Märkused
 
-Lahendus kasutab PostgreSQL-i, Docker Compose mikro-teenuseid, cron schedulerit, lihtsat HTTP API-t ja JavaScripti dashboardi. Dokumentatsioonis ei käsitleta Airflow'd, Supersetit ega Streamlitit kohustusliku osana.
+Lahendus kasutab PostgreSQL-i, Docker Compose teenuseid, Python/Flask HTTP API-t ja JavaScripti dashboardi. Pipeline käivitatakse kas scheduler teenuse kaudu või käsitsi `trigger_pipeline` teenusena. Dokumentatsioonis ei käsitleta Airflow'd, Supersetit ega Streamlitit kohustusliku osana.
 
 

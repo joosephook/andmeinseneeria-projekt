@@ -7,7 +7,7 @@
     * tulemus: kataloog 'aruanne' koos raportitega on repo root kaustas
 3. `docker compose up`
     * tulemus: loodud ja valmis pandud andmebaas, andmetoru jookseb automaatselt peale andmebaasi valmisolekut
-4. `docker compose run trigger_pipeline`: andmetoru jookseb uuesti, 1 korra
+4. `docker compose run --rm trigger_pipeline`: andmetoru jookseb uuesti ühe korra
 5. `docker compose exec -it postgres psql -U debtuser -d debtdb`: andmebaasis toimetamiseks
 6. `docker compose exec -it postgres psql -U debtuser -d debtdb -c 'select * from mart.fact_debt_snapshot'`: laenulepingu faktitabel
 7. `docker compose exec -it postgres psql -U debtuser -d debtdb -c 'select * from mart.kpi_daily_debt'`: laenuportfelli ülevaade kuu lõikes
@@ -15,7 +15,7 @@
 
 ## Dashboard
 
-Peale andmetoru jooksmist mine [http://localhost:5000/dashboard](http://localhost:5000/dashboard)
+Pärast andmetoru jooksmist mine [http://localhost:5000/dashboard](http://localhost:5000/dashboard)
 Peaks avanema selline vaatepilt:
 ![pilt](./images/sprint-03-dashboard.png)
 
@@ -41,14 +41,15 @@ flowchart LR
     SAP[SAP XLSX eksport] --> FILES[Jagatud failikataloog]
     FILES --> INGEST[Ingest teenus]
     INGEST --> STAGING[(PostgreSQL staging)]
-    STAGING --> QUALITY[Andmekvaliteedi kontroll]
+    STAGING --> QUALITY[Andmekvaliteedi kontroll ingest loogikas]
     QUALITY --> TRANSFORM[Transformatsiooni teenus]
     TRANSFORM --> MART[(PostgreSQL mart)]
-    MART --> API[Dashboard API]
+    MART --> API[Flask Dashboard API]
     API --> DASH[JS dashboard]
-    SCHED[Cron scheduler] --> INGEST
-    SCHED --> QUALITY
+    SCHED[Pipeline scheduler] --> INGEST
     SCHED --> TRANSFORM
+    TRIGGER[trigger_pipeline] --> INGEST
+    TRIGGER --> TRANSFORM
 ```
 
 Üldine arhitektuurikirjeldus: [`docs/arhitektuur.md`](docs/arhitektuur.md)
@@ -78,23 +79,23 @@ Sisendfaili peamised veerud:
 | Komponent | Tööriist |
 |---|---|
 | Andmebaas | PostgreSQL |
-| Sissevõtt | Python või Node.js teenus |
-| Andmekvaliteet | SQL, Python või Node.js kontrollid |
-| Transformatsioon | SQL, Python või dbt-stiilis SQL |
-| Orkestreerimine | Cron Docker konteineris |
-| Dashboard API | Node.js + Express või muu lihtne HTTP API |
-| Dashboard | HTML, CSS, Vanilla JavaScript, Apache Echart |
-| Käitus | Docker Compose mikro-teenused |
+| Sissevõtt | Python, pandas, psycopg2 |
+| Andmekvaliteet | Python kontrollid ja `quality.quality_results` tabel |
+| Transformatsioon | Python ja SQL |
+| Orkestreerimine | Python scheduler Docker Compose teenuses |
+| Dashboard API | Python Flask |
+| Dashboard | HTML, CSS, Vanilla JavaScript, Apache ECharts |
+| Käitus | Docker Compose teenused `postgres`, `pipeline`, `trigger_pipeline`, `api` |
 
 ## Andmevoog lühidalt
 
 1. SAP salvestab uue XLSX-faili jagatud kataloogi.
-2. Scheduler kontrollib uut faili ja käivitab ingest teenuse.
+2. Scheduler või `trigger_pipeline` kontrollib uut faili ja käivitab ingest loogika.
 3. Ingest kontrollib faili kontrollsummat ning laadib read `staging` kihti.
-4. Quality teenus kontrollib kohustuslikke välju, registrikoodi, lepingu numbrit, võlasummat ja võlapäevi.
-5. Transform teenus täidab `mart` skeemi dimensioonid, faktitabeli ja KPI tabelid.
-6. Dashboard API loeb mart kihist KPI-d.
-7. JS dashboard kuvab trendid ja viimase laadimise staatuse.
+4. Ingest kontrollib kohustuslikke välju, registrikoodi, lepingu numbrit, võlasummat ja võlapäevi ning salvestab tulemused `quality` skeemi.
+5. Transform teenus täidab `mart` skeemi dimensioonid, faktitabeli, KPI tabelid ja raportivaated.
+6. Flask Dashboard API loeb mart kihist KPI-d.
+7. JS dashboard kuvab trendid, võlas olevate ettevõtete/lepingute arvu ja raportivaate.
 
 ## Andmekvaliteedi kontrollid
 
@@ -104,21 +105,23 @@ Projekt kontrollib vähemalt järgmist:
 2. Lepingu number on täidetud.
 3. Võlasumma on arvuline ega ole mart kihis negatiivne.
 4. Võlapäevad on mitte-negatiivne täisarv, kui väli on failis olemas.
-5. Sama failikontrollsummaga faili ei laadita duplikaadina.
-6. Vigased read salvestatakse `quality` või `logs` skeemi koos vea põhjusega.
+5. Võlapäevad jäävad lubatud vahemikku `0..3650`, kui väli on failis olemas.
+6. Sama failikontrollsummaga faili ei laadita duplikaadina.
+7. Vigased read salvestatakse `quality.quality_results` tabelisse koos vea põhjusega.
+8. Mart kihis kontrollitakse, et snapshoti summa on positiivne, lepingute arv ei ole 0 ja staging kuupäev on martis olemas.
 
 ## Käivitamine
 
-Rakenduskoodi ja `docker compose` faili ei ole selles etapis veel loodud. Arhitektuur on koostatud nii, et järgmise sammuna saab luua teenused:
+Rakenduskood ja `compose.yml` on olemas. Keskkonna käivitamiseks:
 
 ```bash
-docker compose up -d --build
+docker compose up --build
 ```
 
-Eeldatav dashboardi aadress pärast rakenduse loomist:
+Dashboardi aadress:
 
 ```text
-http://localhost:3000
+http://localhost:5000/dashboard
 ```
 
 ## Saladused ja konfiguratsioon
@@ -134,8 +137,8 @@ Vajalikud muutujad:
 | `POSTGRES_DB` | Andmebaasi nimi. |
 | `POSTGRES_USER` | Andmebaasi kasutaja. |
 | `POSTGRES_PASSWORD` | Andmebaasi parool. |
-| `SAP_FILES_DIR` | SAP XLSX failide kataloog. |
-| `LOG_DIR` | Pipeline logide kataloog. |
+| `ARUANNE_DIR` | SAP XLSX failide kataloog konteineris; vaikimisi `/data/aruanne`. |
+| `TARGET_FILENAME` | Otsitava SAP XLSX faili nimi. |
 
 ## Projekti struktuur
 
@@ -145,6 +148,11 @@ Vajalikud muutujad:
 ├── .gitignore
 ├── docs/
 │   ├── arhitektuur.md
+│   ├── docker.md
+│   ├── test_raport.md
+│   ├── video.md
+│   ├── progress.md
+│   ├── aruanne.zip
 │   ├── ari_arhitektuur/
 │   │   ├── 01_arikirjeldus.md
 │   │   ├── 02_arireeglistik.md
@@ -160,12 +168,22 @@ Vajalikud muutujad:
 │       ├── 03_evitus_diagram.md
 │       ├── 04_jargnevus_diagram.md
 │       └── 05_kommunikatsiooni_diagram.md
-└── TMP/
-    ├── UT_IT.txt
-    └── codex_arhitektuuri_juhend.md
+├── images/
+├── services/
+│   ├── api.py
+│   ├── ingest.py
+│   ├── transform.py
+│   ├── scheduler.py
+│   ├── run_pipeline.py
+│   ├── templates/
+│   └── static/
+├── sql/
+│   └── init_schema.sql
+├── compose.yml
+└── .env.example
 ```
 
-`TMP/` on töökaust lähte- ja juhendmaterjalide jaoks ning seda ei lisata Giti.
+`TMP/`, `temp/` ja `temp2/` on töö- ja võrdlusmaterjalide kaustad.
 
 ## Kokkuvõte, puudused ja võimalikud edasiarendused
 
@@ -173,28 +191,29 @@ Vajalikud muutujad:
 
 - Koostatud on äri- ja IT-arhitektuuri Markdown dokumentatsioon.
 - Kirjeldatud on SAP XLSX failist lähtuv automaatne andmetoru.
-- Paika on pandud PostgreSQL skeemid, KPI-d, kvaliteedikontrollid ja dashboardi vajadused.
+- Loodud on Docker Compose põhine PostgreSQL, pipeline ja Flask dashboardi teostus.
+- Paika on pandud PostgreSQL skeemid, KPI-d, kvaliteedikontrollid, mart vaated ja dashboard.
 
 **Puudused:**
 
-- Rakenduskood, Docker Compose fail ja tegelikud teenused on veel loomata.
-- SAP faili täpne formaat ja võlapäevade arvutuse allikas vajavad kinnitamist.
+- SAP faili täpne formaat ja võlapäevade arvutuse allikas vajavad jätkuvalt kinnitamist.
+- `logs.pipeline_runs` tabel on arhitektuuris olemas, kuid praegune operatiivne logimine toimub peamiselt logifailides.
 
 **Mis edasi:**
 
-- Luua `compose.yml`, `.env.example` ja teenuste kaustad.
-- Ehitada ingest, quality, transform ja dashboard teenused.
-- Lisada testandmed ning automaatsed andmekvaliteedi testid.
+- Täiendada pipeline staatuse kirjutamist `logs.pipeline_runs` tabelisse.
+- Lisada automaatsed andmekvaliteedi ja API testid.
+- Täpsustada dashboardi filtreid ja raporti eksporti.
 - Planeerida tulevane ML riskiskoori komponent.
 
 ## Meeskond
 
-| Nimi | Roll|
-|---|---|
-| Jaan | Andmed, Äriprobleem, Dashboadr |
-| Joosep | Git, Dokerid |
-| Sorell | Testid ja analüüs |
-| Anti | Arhitektuur, Video |
+| Initsiaal | Nimi | Vastutus |
+|---|---|---|
+| JS | Jaan | Andmed, äriprobleem, dashboard ja KPI-de äriline selgitus |
+| JH | Joosep | Git, Docker/Compose, pipeline/API käivitus ja tehniline demo |
+| ST | Sorell | Testid, andmekvaliteedi kontrollid ja testiraport |
+| AK | Anti | Arhitektuur, dokumentatsioon ja demo video salvestamine |
 
 
 ### Andmekvaliteedi kontroll juhend

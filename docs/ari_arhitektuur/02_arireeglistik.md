@@ -30,6 +30,9 @@ Võlas leping on leping, mille võlapäevade arv on suurem kui null või mille v
 | Lepingu numbri kontroll | Lepingu number peab olema täidetud. | quality | Puuduv leping takistab lepingupõhist analüüsi. |
 | Võlasumma kontroll | Võlasumma peab olema arvuline. | quality | Tühjad ja mittearvulised väärtused eraldatakse. |
 | Võlapäevade kontroll | Võlapäevad peavad olema mitte-negatiivne täisarv, kui väli on failis olemas. | quality | Negatiivsed väärtused märgitakse veaks. |
+| Võlapäevade ülempiir | Võlapäevade väärtus peab jääma vahemikku `0..3650`, kui väli on failis olemas. | quality | Väga suured väärtused märgitakse andmekvaliteedi veaks. |
+| Mart kihi kontroll | Iga snapshoti võlasumma peab olema positiivne, lepingute arv suurem kui 0 ja igal staging raportikuupäeval peab olema mart kirje. | transform | KPI arvutus katkestatakse, kui mart kontroll ebaõnnestub. |
+| Viimase viie kuupäeva raport | Ettevõttepõhine pivot näitab kuni viie viimase raportikuupäeva kaalutud võlapäevi. | mart vaated, dashboard | Kasutatakse võlgnevuste raporti vaates. |
 
 ## Andmevoog
 
@@ -50,6 +53,6 @@ flowchart LR
 
 ## Tehnilised Märkused
 
-Ärireeglid tuleb realiseerida nii SQL-is kui ka teenuste valideerimisloogikas. Reeglite tulemused salvestatakse `quality` või `logs` skeemi, et dashboard saaks näidata failide laadimise staatust ja vigade arvu.
+Ärireeglid realiseeritakse nii SQL-is kui ka Python teenuste valideerimisloogikas. Rea kvaliteeditulemused salvestatakse `quality.quality_results` tabelisse ning teenuste käivituste detailid logifailidesse. `logs.pipeline_runs` skeem on arhitektuuris olemas pipeline staatuse salvestamiseks, kuid praeguses teostuses on peamine operatiivne logimine failipõhine.
 
 

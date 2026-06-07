@@ -45,7 +45,7 @@ Kuidas muutuvad võlas olevate lepingute võlapäevad ja võlasummad ajas ning m
 |---|---|---|---|
 | SAP võlaandmete eksport | XLSX | Jah | Igapäevane või kokkulepitud sagedusega lähtefail laenuklientide võlgnevuste kohta. |
 
-Fail sisaldab vähemalt registrikoodi, lepingu numbrit ja võlasummat. Võlapäevad võivad tulla failist või olla arvutatavad maksetähtaja ja raportikuupäeva alusel.
+Fail sisaldab vähemalt registrikoodi, lepingu numbrit ja võlasummat. Praegune sissevõtt loeb lisaks võlapäevade välja, kui see SAP ekspordis olemas on; puuduv võlapäevade väärtus tähendab, et rida ei kuulu võlapäevade koonditesse.
 
 ## Andmevoog
 
@@ -54,7 +54,7 @@ flowchart LR
     SAP[SAP XLSX eksport] --> FILES[Jagatud failikataloog]
     FILES --> INGEST[Ingest teenus]
     INGEST --> STAGING[(PostgreSQL staging)]
-    STAGING --> QUALITY[Andmekvaliteedi kontroll]
+    STAGING --> QUALITY[Andmekvaliteedi kontroll ingest loogikas]
     QUALITY --> TRANSFORM[Transformatsiooni teenus]
     TRANSFORM --> MART[(PostgreSQL mart)]
     MART --> API[Dashboard API]
@@ -78,29 +78,31 @@ flowchart LR
 | Teenus | Vastutus |
 |---|---|
 | `postgres` | PostgreSQL andmebaas. |
-| `ingest` | Loeb uue SAP XLSX faili, kontrollib duplikaate ja laadib toorread staging kihti. |
-| `quality` | Kontrollib kohustuslikke välju, formaate ja väärtusi. |
-| `transform` | Teisendab andmed mart kihti ja arvutab KPI-d. |
-| `scheduler` | Käivitab croniga päevase töövoo kindlas järjekorras. |
-| `dashboard` | Kuvab KPI-d ja laadimise staatuse veebiliideses. |
+| `pipeline` | Käivitab scheduleriga automaatse failiotsingu, ingest/quality ja transform töövoo. |
+| `trigger_pipeline` | Võimaldab sama töövoogu käsitsi käivitada. |
+| `ingest` | Loeb SAP XLSX faili, kontrollib duplikaate, normaliseerib väärtused ja laadib toorread staging kihti. |
+| `quality` | Realiseeritud ingest loogikas; kontrollib registrikoodi, lepingu numbrit, võlasummat ja võlapäevi ning salvestab tulemused `quality.quality_results` tabelisse. |
+| `transform` | Teisendab andmed mart kihti, kontrollib mart terviklikkust ja arvutab KPI-d. |
+| `api` | Flask API ja veebiliides, mis kuvab KPI graafikud ning võlgnevuste raporti. |
 
 ## Töövoo Järjekord
 
 1. Kontrolli uue faili olemasolu.
 2. Käivita ingest.
-3. Käivita kvaliteedikontrollid.
+3. Käivita rea kvaliteedikontrollid ingest loogikas.
 4. Käivita transformatsioonid.
-5. Uuenda mart kiht.
-6. Logi töö tulemus.
+5. Kontrolli ja uuenda mart kiht.
+6. Arvuta KPI-d ja mart vaated.
+7. Logi töö tulemus.
 
 ## Tööjaotus
 
-| Vastutus | Täitja |
-|---|---|
-| Andmed | Jaan |
-| Git | Joosep |
-| Testid ja analüüs | Sorell |
-| Arhitektuur | Anti |
+| Initsiaal | Täitja | Vastutus |
+|---|---|---|
+| JS | Jaan | Andmed, äriprobleem, dashboard ja KPI-de äriline selgitus |
+| JH | Joosep | Git, Docker/Compose, pipeline/API käivitus ja tehniline demo |
+| ST | Sorell | Testid, andmekvaliteedi kontrollid ja testiraport |
+| AK | Anti | Arhitektuur, dokumentatsioon ja demo video salvestamine |
 
 ## Riskid
 

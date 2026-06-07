@@ -6,23 +6,23 @@ Dokumendi eesmärk on kirjeldada lahenduse peamised IT komponendid ja nende seos
 
 ## Ulatus
 
-Ulatus hõlmab SAP eksporti, jagatud failikataloogi, cron schedulerit, ingest teenust, quality teenust, transform teenust, PostgreSQL-i, dashboard API-t, JS frontend'i ja tulevast ML teenust.
+Ulatus hõlmab SAP eksporti, `aruanne` failikataloogi, schedulerit, käsitsi käivitatavat pipeline triggerit, ingest/quality/transform loogikat, PostgreSQL-i, Flask dashboard API-t, JS frontend'i ja tulevast ML teenust.
 
 ## Põhikirjeldus
 
-SAP kirjutab XLSX faili jagatud failikataloogi. Cron scheduler käivitab töövoo, mille käigus ingest teenus loeb faili PostgreSQL staging kihti, quality teenus kontrollib ridu ja transform teenus uuendab mart kihte. Dashboard API loeb mart kihist KPI-d ja JS frontend kuvab need kasutajale. Tulevane ML teenus saab kasutada samu mart tabeleid riskiskoori arvutamiseks.
+SAP XLSX fail paikneb `aruanne` kataloogis ning konteineris on see nähtav `/data/aruanne` teena. Scheduler või `trigger_pipeline` käivitab töövoo, mille käigus Python ingest loeb faili PostgreSQL staging kihti, sama protsessi kvaliteediloogika salvestab kontrollitulemused ja transform uuendab mart kihte. Flask API loeb mart kihist KPI-d ning HTML/CSS/JavaScript frontend kuvab need kasutajale. Tulevane ML teenus saab kasutada samu mart tabeleid riskiskoori arvutamiseks.
 
 ## Diagramm
 
 ```mermaid
 flowchart LR
-    SAP[SAP Export] --> FS[Shared File Storage]
+    SAP[SAP Export] --> FS[aruanne directory]
     FS --> INGEST[Ingest Service]
     SCHED[Cron Scheduler] --> INGEST
-    SCHED --> QUALITY[Quality Service]
     SCHED --> TRANSFORM[Transform Service]
+    TRIGGER[Manual trigger_pipeline] --> INGEST
+    TRIGGER --> TRANSFORM
     INGEST --> DB[(PostgreSQL)]
-    QUALITY --> DB
     TRANSFORM --> DB
     DB --> API[Dashboard API]
     API --> UI[JS Dashboard]
@@ -34,18 +34,18 @@ flowchart LR
 | Komponent | Vastutus | Tehnoloogia |
 |---|---|---|
 | SAP Export | Tekitab võlaandmete XLSX faili. | SAP |
-| Shared File Storage | Hoiab SAP ekspordifaile. | Jagatud kataloog või volume |
-| Cron Scheduler | Käivitab töövoo kindlas järjekorras. | cron Docker konteineris |
-| Ingest Service | Loeb XLSX faili staging kihti. | Python või Node.js |
-| Quality Service | Kontrollib andmekvaliteeti. | SQL, Python või Node.js |
-| Transform Service | Täidab mart tabelid ja KPI-d. | SQL, Python või dbt-stiilis SQL |
+| Shared File Storage | Hoiab SAP ekspordifaile. | `./aruanne` bind mount konteineris `/data/aruanne` |
+| Cron Scheduler | Käivitab töövoo kindlas järjekorras. | Python scheduler Docker konteineris |
+| Manual Pipeline Trigger | Võimaldab töövoogu käsitsi käivitada. | Docker Compose profiiliga `trigger_pipeline` |
+| Ingest Service | Loeb XLSX faili staging kihti ja salvestab rea kvaliteeditulemused. | Python, pandas, psycopg2 |
+| Transform Service | Täidab mart tabelid, teeb mart kontrollid ja arvutab KPI-d. | Python ja SQL |
 | PostgreSQL | Hoiab staging, quality, mart ja logs skeeme. | PostgreSQL |
-| Dashboard API | Teenindab dashboardi päringuid. | PHP (Node.js + Express) |
-| JS Frontend | Kuvab KPI-d ja graafikud. | HTML, CSS, Apache Echarts, Vanilla JS, (Chart.js) |
+| Dashboard API | Teenindab dashboardi ja JSON päringuid. | Python Flask |
+| JS Frontend | Kuvab KPI-d, graafikud ja raportivaate. | HTML, CSS, Apache ECharts, Vanilla JS |
 | Future ML Service | Arvutab riskiskoori või trendiprognoosi. | Hilisem eraldi teenus |
 
 ## Tehnilised Märkused
 
-Kõik sisemised teenused suhtlevad Docker Compose võrgus. API peab lugema eelarvutatud mart andmeid, mitte tegema raskeid transformatsioone kasutaja päringu ajal.
+Praegune Compose konfiguratsioon kasutab `network_mode: host`, mistõttu teenused pöörduvad PostgreSQL-i poole `localhost:5432` kaudu. API peab lugema eelarvutatud mart andmeid ja vaateid, mitte tegema raskeid transformatsioone kasutaja päringu ajal.
 
 
